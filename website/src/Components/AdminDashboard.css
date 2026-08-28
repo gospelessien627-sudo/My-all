@@ -1,0 +1,342 @@
+* {
+  box-sizing: border-box;
+}
+
+.admin-dashboard {
+  min-height: 100vh;
+  display: flex;
+  background: #f5f5f5;
+}
+
+/* =========================
+   SIDEBAR
+========================= */
+
+.admin-sidebar {
+  width: 240px;
+  min-height: 100vh;
+  background: #111;
+  color: white;
+  padding: 30px 20px;
+  position: fixed;
+  left: 0;
+  top: 0;
+}
+
+.admin-sidebar h1 {
+  margin-bottom: 5px;
+}
+
+.admin-sidebar p {
+  color: #aaa;
+  margin-bottom: 35px;
+}
+
+.admin-sidebar button {
+  width: 100%;
+  padding: 13px;
+  margin-bottom: 10px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: white;
+  text-align: left;
+  cursor: pointer;
+  font-size: 15px;
+}
+
+.admin-sidebar button:hover,
+.admin-sidebar button.active {
+  background: #333;
+}
+
+.admin-sidebar .logout-btn {
+  margin-top: 30px;
+  color: #ff6b6b;
+}
+
+/* =========================
+   MAIN
+========================= */
+
+.admin-main {
+  margin-left: 240px;
+  width: calc(100% - 240px);
+  padding: 35px;
+}
+
+.admin-header {
+  margin-bottom: 30px;
+}
+
+.admin-header h1 {
+  margin-bottom: 5px;
+}
+
+.admin-header p {
+  color: #777;
+}
+
+/* =========================
+   STATISTICS
+========================= */
+
+.stats-container {
+  display: grid;
+  grid-template-columns:
+    repeat(3, 1fr);
+
+  gap: 20px;
+
+  margin-bottom: 35px;
+}
+
+.stat-card {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  box-shadow:
+    0 5px 20px rgba(0, 0, 0, 0.06);
+}
+
+.stat-card h3 {
+  color: #777;
+  margin-bottom: 15px;
+}
+
+.stat-card strong {
+  font-size: 35px;
+}
+
+/* =========================
+   PRODUCT FORM
+========================= */
+
+.product-form-card {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  margin-bottom: 35px;
+}
+
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.form-header button {
+  border: none;
+  background: #eee;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.product-form-card form {
+  display: grid;
+  gap: 15px;
+}
+
+.product-form-card input {
+  padding: 13px;
+  border: 1px solid #ddd;
+  border-radius: 7px;
+  outline: none;
+}
+
+.save-product {
+  padding: 13px;
+  border: none;
+  background: #111;
+  color: white;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+/* =========================
+   PRODUCTS
+========================= */
+
+.products-section {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+  margin-bottom: 35px;
+}
+
+.section-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.section-title button {
+  padding: 10px 15px;
+  border: none;
+  background: #111;
+  color: white;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+.admin-products {
+  display: grid;
+  gap: 15px;
+}
+
+.admin-product {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 15px;
+  border: 1px solid #eee;
+  border-radius: 10px;
+}
+
+.admin-product img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.product-info {
+  flex: 1;
+}
+
+.product-info h3 {
+  margin-bottom: 5px;
+}
+
+.product-info p {
+  color: #777;
+  margin: 3px 0;
+}
+
+.product-info h4 {
+  margin-top: 8px;
+}
+
+.product-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.product-actions button {
+  padding: 9px 13px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.edit-btn {
+  background: #eee;
+}
+
+.delete-btn {
+  background: #ffdddd;
+  color: #d00000;
+}
+
+/* =========================
+   USERS
+========================= */
+
+.users-section {
+  background: white;
+  padding: 25px;
+  border-radius: 12px;
+}
+
+.users-section h2 {
+  margin-bottom: 20px;
+}
+
+.users-table {
+  width: 100%;
+}
+
+.user-row {
+  display: grid;
+  grid-template-columns:
+    1fr 2fr 1fr;
+
+  padding: 15px;
+
+  border-bottom: 1px solid #eee;
+}
+
+.user-header {
+  font-weight: bold;
+  background: #f5f5f5;
+}
+
+/* =========================
+   LOADING
+========================= */
+
+.admin-loading {
+  min-height: 100vh;
+
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 900px) {
+
+  .stats-container {
+    grid-template-columns: 1fr;
+  }
+
+}
+
+@media (max-width: 768px) {
+
+  .admin-sidebar {
+    width: 190px;
+  }
+
+  .admin-main {
+    margin-left: 190px;
+    width: calc(100% - 190px);
+    padding: 20px;
+  }
+
+  .admin-product {
+    flex-wrap: wrap;
+  }
+
+}
+
+@media (max-width: 600px) {
+
+  .admin-sidebar {
+    position: static;
+    width: 100%;
+    min-height: auto;
+  }
+
+  .admin-dashboard {
+    display: block;
+  }
+
+  .admin-main {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .user-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+}
