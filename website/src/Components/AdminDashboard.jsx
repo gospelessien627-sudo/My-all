@@ -64,74 +64,55 @@ useEffect(() => {
   // GET DASHBOARD DATA
   // ========================================
 
-  const getDashboardData = async () => {
+const getDashboardData = async (currentUser) => {
+  try {
+    setLoading(true);
 
-    try {
+    const headers = {
+      "user-id": currentUser.id
+    };
 
-      setLoading(true);
+    const [
+      productsResponse,
+      usersResponse,
+      statsResponse
+    ] = await Promise.all([
+      fetch(
+        "https://davira-backend-api.vercel.app/admin/products",
+        { headers }
+      ),
 
-      const headers = {
-        "user-id": currentUser.id
-      };
+      fetch(
+        "https://davira-backend-api.vercel.app/admin/users",
+        { headers }
+      ),
 
-      const [
-        productsResponse,
-        usersResponse,
-        statsResponse
-      ] = await Promise.all([
+      fetch(
+        "https://davira-backend-api.vercel.app/admin/stats",
+        { headers }
+      )
+    ]);
 
-        fetch(
-          "http://localhost:5000/admin/products",
-          { headers }
-        ),
+    const productsData = await productsResponse.json();
+    const usersData = await usersResponse.json();
+    const statsData = await statsResponse.json();
 
-        fetch(
-          "http://localhost:5000/admin/users",
-          { headers }
-        ),
-
-        fetch(
-          "http://localhost:5000/admin/stats",
-          { headers }
-        )
-
-      ]);
-
-      const productsData =
-        await productsResponse.json();
-
-      const usersData =
-        await usersResponse.json();
-
-      const statsData =
-        await statsResponse.json();
-
-      if (!productsResponse.ok) {
-        throw new Error(
-          productsData.message
-        );
-      }
-
-      setProducts(productsData);
-
-      setUsers(usersData);
-
-      setStats(statsData);
-
-    } catch (error) {
-
-      console.error(
-        "Dashboard error:",
-        error
+    if (!productsResponse.ok) {
+      throw new Error(
+        productsData.message || "Failed to fetch products"
       );
-
-    } finally {
-
-      setLoading(false);
-
     }
 
-  };
+    setProducts(productsData);
+    setUsers(usersData);
+    setStats(statsData);
+
+  } catch (error) {
+    console.error("Dashboard error:", error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // ========================================
   // FORM CHANGE
@@ -761,6 +742,8 @@ useEffect(() => {
               </div>
 
             ))}
+
+
 
           </div>
 

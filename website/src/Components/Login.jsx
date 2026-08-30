@@ -43,7 +43,7 @@ const Login = () => {
         }
 
         const response = await fetch(
-          "http://localhost:5000/register",
+          "https://davira-backend-api.vercel.app/register",
           {
             method: "POST",
 
@@ -95,7 +95,7 @@ const Login = () => {
         }
 
         const response = await fetch(
-          "http://localhost:5000/login",
+          "https://davira-backend-api.vercel.app/login",
           {
             method: "POST",
 
@@ -117,23 +117,23 @@ const Login = () => {
         }
 
         // ========================================
-// SAVE USER
-// ========================================
+        // SAVE USER
+        // ========================================
 
-localStorage.setItem(
-  "user",
-  JSON.stringify(data.user)
-);
+        localStorage.setItem(
+          "user",
+          JSON.stringify(data.user)
+        );
 
-// ========================================
-// REDIRECT BASED ON ROLE
-// ========================================
+        // ========================================
+        // REDIRECT BASED ON ROLE
+        // ========================================
 
-if (data.user.role === "admin") {
-  navigate("/admin");
-} else {
-  navigate("/");
-}
+        if (data.user.role === "admin") {
+          navigate("/admin");
+        } else {
+          navigate("/");
+        }
       }
 
     } catch (error) {
@@ -151,6 +151,7 @@ if (data.user.role === "admin") {
     }
   };
 
+
   // ========================================
   // SWITCH LOGIN / REGISTER
   // ========================================
@@ -166,6 +167,7 @@ if (data.user.role === "admin") {
     setEmail("");
     setPassword("");
   };
+
 
   return (
 
@@ -185,17 +187,20 @@ if (data.user.role === "admin") {
             : "Login to your Davira account"}
         </p>
 
+
         {error && (
           <div className="error-message">
             {error}
           </div>
         )}
 
+
         {success && (
           <div className="success-message">
             {success}
           </div>
         )}
+
 
         <form onSubmit={handleSubmit}>
 
@@ -220,6 +225,7 @@ if (data.user.role === "admin") {
 
           )}
 
+
           <div className="input-group">
 
             <label>
@@ -236,6 +242,7 @@ if (data.user.role === "admin") {
             />
 
           </div>
+
 
           <div className="input-group">
 
@@ -254,6 +261,7 @@ if (data.user.role === "admin") {
 
           </div>
 
+
           <button
             type="submit"
             className="auth-button"
@@ -269,6 +277,7 @@ if (data.user.role === "admin") {
           </button>
 
         </form>
+
 
         <div className="switch-auth">
 
@@ -286,6 +295,7 @@ if (data.user.role === "admin") {
           </button>
 
         </div>
+
 
         <button
           className="back-home"

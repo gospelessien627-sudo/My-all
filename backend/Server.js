@@ -8,99 +8,267 @@ import "dotenv/config";
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 const app = express();
+// import express from "express";
+// import cors from "cors";
 
-app.use(cors());
+// const app = express();
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://my-all-neon.vercel.app"
+];
+
+app.use((req, res, next) => {
+
+  const origin = req.headers.origin;
+
+  if (allowedOrigins.includes(origin)) {
+    res.header(
+      "Access-Control-Allow-Origin",
+      origin
+    );
+  }
+
+  res.header(
+    "Vary",
+    "Origin"
+  );
+
+  res.header(
+    "Access-Control-Allow-Methods",
+    "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+  );
+
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, user-id"
+  );
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+
+  next();
+});
+
+// app.use(express.json());
 app.use(express.json());
 
-const client = new MongoClient(process.env.MONGODB_URL);
+// app.options("*", cors());
 
+
+// const express = require("express");
+// const cors = require("cors");
+
+// const app = express();
+
+
+// ===============================
+// CORS
+// ===============================
+
+// const allowedOrigins = [
+//   "http://localhost:5173",
+//   "https://YOUR-FRONTEND.vercel.app"
+// ];
+
+// const corsOptions = {
+//   origin: function (origin, callback) {
+
+//     if (!origin) {
+//       return callback(null, true);
+//     }
+
+//     if (allowedOrigins.includes(origin)) {
+//       return callback(null, true);
+//     }
+
+//     return callback(new Error("Not allowed by CORS"));
+//   },
+
+//   methods: [
+//     "GET",
+//     "POST",
+//     "PUT",
+//     "DELETE",
+//     "OPTIONS"
+//   ],
+
+//   allowedHeaders: [
+//     "Content-Type",
+//     "Authorization",
+//     "user-id"
+//   ]
+// };
+
+// ===============================
+// CORS
+// ===============================
+
+// const allowedOrigins = [
+//   "http://localhost:5173"
+// ];
+
+// const corsOptions = {
+//   origin: function (origin, callback) {
+//     if (!origin) {
+//       return callback(null, true);
+//     }
+
+//     if (allowedOrigins.includes(origin)) {
+//       return callback(null, true);
+//     }
+
+//     return callback(new Error("Not allowed by CORS"));
+//   },
+
+//   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+
+//   allowedHeaders: [
+//     "Content-Type",
+//     "Authorization",
+//     "user-id"
+//   ],
+
+//   credentials: false
+// };
+
+// app.use(cors(corsOptions));
+// app.options(/.*/, cors(corsOptions));
+
+// app.options(/.*/, cors());
+
+
+// app.options(/.*/, cors(corsOptions));
+
+app.use(express.json());
+
+
+// ===============================
+// DATABASE
+// ===============================
+
+const client = new MongoClient(
+  process.env.MONGODB_URL
+);
+
+let db;
 let products;
 let cart;
 let users;
 let reviews;
 let newsletter;
 
-// ========================================
-// CONNECT TO MONGODB
-// ========================================
 
 async function connectDB() {
+
+  if (db) {
+    return db;
+  }
+
   await client.connect();
 
-  const db = client.db("clothing_store");
+  db = client.db("clothing_store");
 
   products = db.collection("products");
   cart = db.collection("cart");
   users = db.collection("users");
   reviews = db.collection("reviews");
   newsletter = db.collection("newsletter");
-  // Create unique index for email
+
   await users.createIndex(
     { email: 1 },
     { unique: true }
   );
+
   await newsletter.createIndex(
-  { email: 1 },
-  { unique: true }
-);
+    { email: 1 },
+    { unique: true }
+  );
 
   console.log("MongoDB connected successfully");
+
+  return db;
 }
 
 
-const verifyAdmin = async (req, res, next) => {
+// ===============================
+// DATABASE MIDDLEWARE
+// ===============================
+
+app.use(async (req, res, next) => {
 
   try {
 
-    const userId = req.headers["user-id"];
-
-    if (!userId) {
-      return res.status(401).json({
-        message: "Authentication required"
-      });
-    }
-
-    const user = await users.findOne({
-      _id: new ObjectId(userId)
-    });
-
-    if (!user) {
-      return res.status(401).json({
-        message: "User not found"
-      });
-    }
-
-    if (user.role !== "admin") {
-      return res.status(403).json({
-        message: "Admin access required"
-      });
-    }
-
-    req.user = user;
+    await connectDB();
 
     next();
 
   } catch (error) {
 
-    return res.status(401).json({
-      message: "Invalid user"
+    console.error(
+      "Database connection error:",
+      error
+    );
+
+    res.status(500).json({
+      message: "Database connection failed"
     });
+
   }
-};
+
+});
+
+// ===============================
+// DATABASE MIDDLEWARE
+// ===============================
+
+// app.use(async (req, res, next) => {
+
+//   try {
+
+//     await connectDB();
+
+//     next();
+
+//   } catch (error) {
+
+//     console.error(
+//       "Database connection error:",
+//       error
+//     );
+
+//     res.status(500).json({
+//       message: "Database connection failed"
+//     });
+
+//   }
+
+// });
+
 
 
 async function createAdmin() {
   try {
-    const adminEmail = "gospelessien29@gmail.com";
+
+    const adminEmail = process.env.ADMIN_EMAIL;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (!adminEmail || !adminPassword) {
+      console.error(
+        "ADMIN_EMAIL or ADMIN_PASSWORD is missing"
+      );
+      return;
+    }
 
     const existingAdmin = await users.findOne({
-      email: adminEmail
+      email: adminEmail.toLowerCase()
     });
 
     if (existingAdmin) {
 
       await users.updateOne(
-        { email: adminEmail },
+        { email: adminEmail.toLowerCase() },
         {
           $set: {
             role: "admin"
@@ -114,13 +282,13 @@ async function createAdmin() {
     }
 
     const hashedPassword = await bcrypt.hash(
-      "123456",
+      adminPassword,
       10
     );
 
     await users.insertOne({
       name: "Davira Admin",
-      email: adminEmail,
+      email: adminEmail.toLowerCase(),
       password: hashedPassword,
       role: "admin",
       createdAt: new Date()
@@ -129,9 +297,15 @@ async function createAdmin() {
     console.log("Admin created successfully");
 
   } catch (error) {
-    console.error("Error creating admin:", error);
+
+    console.error(
+      "Error creating admin:",
+      error
+    );
+
   }
 }
+
 app.get("/admin/products", verifyAdmin, async (req, res) => {
 
   try {
@@ -963,8 +1137,10 @@ app.delete("/reviews/:id", async (req, res) => {
 // ========================================
 app.post("/cart", async (req, res) => {
   try {
+
+    const userId = req.headers["user-id"];
+
     const {
-      userId,
       productId,
       name,
       brand,
@@ -990,6 +1166,17 @@ app.post("/cart", async (req, res) => {
       });
     }
 
+    // Make sure the user actually exists
+    const user = await users.findOne({
+      _id: userObjectId
+    });
+
+    if (!user) {
+      return res.status(401).json({
+        message: "User not found. Please login again."
+      });
+    }
+
     const cartProduct = {
       userId: userObjectId,
       productId: String(productId),
@@ -1007,9 +1194,7 @@ app.post("/cart", async (req, res) => {
 
     res.status(201).json({
       message: "Product added to cart",
-
       cartId: result.insertedId,
-
       product: {
         _id: result.insertedId,
         ...cartProduct
@@ -1026,6 +1211,7 @@ app.post("/cart", async (req, res) => {
     });
   }
 });
+
 
 // ========================================
 // GET CART
@@ -1365,27 +1551,47 @@ app.post("/payment", async (req, res) => {
   }
 
 });
+
 // ========================================
-// START SERVER
+// SERVER URL
 // ========================================
 
-connectDB()
-  .then(async () => {
+// const PORT = process.env.PORT || 5000;
 
-    await createAdmin();
+// if (process.env.NODE_ENV !== "production") {
 
-    app.listen(
-      process.env.PORT,
-      () => {
+//   connectDB()
+//     .then(async () => {
 
-        console.log(
-          `Server running on http://localhost:${process.env.PORT}`
-        );
+//       await createAdmin();
 
-      }
-    );
+//       app.listen(PORT, () => {
 
-  })
-  .catch((error) => {
-    console.error("Server startup error:", error);
+//         console.log(
+//           `Server running at http://localhost:${PORT}`
+//         );
+
+//       });
+
+//     })
+//     .catch((error) => {
+
+//       console.error(
+//         "Server startup error:",
+//         error
+//       );
+
+//     });
+
+// }
+
+const PORT = process.env.PORT || 5000;
+
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => {
+    console.log(`Server running at http://localhost:${PORT}`);
   });
+}
+
+// export default app;
+export default app;
