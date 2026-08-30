@@ -14,37 +14,55 @@ const Cart = () => {
   // GET CART FROM MONGODB
   // ========================================
 
-  const getCart = async () => {
+const getCart = async () => {
+  try {
+    const savedUser = localStorage.getItem("user");
 
-    try {
-
-      const response = await fetch(
-        "http://localhost:5000/cart"
-      );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message);
-      }
-
-      setCart(data);
-
-    } catch (error) {
-
-      console.error(
-        "Error fetching cart:",
-        error
-      );
-
-    } finally {
-
-      setLoading(false);
-
+    if (!savedUser) {
+      navigate("/login");
+      return;
     }
 
-  };
+    const user = JSON.parse(savedUser);
 
+    if (!user.id) {
+      localStorage.removeItem("user");
+      navigate("/login");
+      return;
+    }
+
+    const response = await fetch(
+      "http://localhost:5000/cart",
+      {
+        headers: {
+          "user-id": user.id
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to fetch cart");
+    }
+
+    console.log("CART PAGE:", data);
+
+    setCart(data);
+
+  } catch (error) {
+
+    console.error(
+      "Error fetching cart:",
+      error
+    );
+
+  } finally {
+
+    setLoading(false);
+
+  }
+};
 
   useEffect(() => {
 

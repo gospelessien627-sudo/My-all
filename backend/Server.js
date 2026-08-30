@@ -964,6 +964,7 @@ app.delete("/reviews/:id", async (req, res) => {
 app.post("/cart", async (req, res) => {
   try {
     const {
+      userId,
       productId,
       name,
       brand,
@@ -973,19 +974,30 @@ app.post("/cart", async (req, res) => {
       quantity
     } = req.body;
 
-    if (!productId || !name || !price) {
+    if (!userId || !productId || !name || price === undefined) {
       return res.status(400).json({
-        message: "Invalid product information"
+        message: "Invalid cart information"
+      });
+    }
+
+    let userObjectId;
+
+    try {
+      userObjectId = new ObjectId(userId);
+    } catch (error) {
+      return res.status(400).json({
+        message: "Invalid user ID"
       });
     }
 
     const cartProduct = {
-      productId: Number(productId),
-      name,
-      brand,
+      userId: userObjectId,
+      productId: String(productId),
+      name: name.trim(),
+      brand: brand?.trim() || "",
       price: Number(price),
-      sizes,
-      image,
+      sizes: sizes || "",
+      image: image || "",
       quantity: Number(quantity) || 1,
       createdAt: new Date(),
       updatedAt: new Date()
@@ -1012,7 +1024,6 @@ app.post("/cart", async (req, res) => {
       message: "Failed to add product to cart",
       error: error.message
     });
-
   }
 });
 
@@ -1024,13 +1035,35 @@ app.post("/cart", async (req, res) => {
 app.get("/cart", async (req, res) => {
   try {
 
+    const userId = req.headers["user-id"];
+
+    if (!userId) {
+      return res.status(401).json({
+        message: "Please login first"
+      });
+    }
+
+    let userObjectId;
+
+    try {
+      userObjectId = new ObjectId(userId);
+    } catch (error) {
+      return res.status(400).json({
+        message: "Invalid user ID"
+      });
+    }
+
     const cartProducts = await cart
-      .find({})
+      .find({
+        userId: userObjectId
+      })
       .toArray();
 
     res.status(200).json(cartProducts);
 
   } catch (error) {
+
+    console.error("Get cart error:", error);
 
     res.status(500).json({
       message: "Error fetching cart",
@@ -1339,7 +1372,6 @@ app.post("/payment", async (req, res) => {
 connectDB()
   .then(async () => {
 
-    // Create admin account if it doesn't exist
     await createAdmin();
 
     app.listen(
@@ -1354,3 +1386,6 @@ connectDB()
     );
 
   })
+  .catch((error) => {
+    console.error("Server startup error:", error);
+  });

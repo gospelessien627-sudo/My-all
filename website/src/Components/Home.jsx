@@ -21,6 +21,8 @@ import {FaTshirt, FaHome , FaTag ,   FaUser, FaThLarge, FaShoePrints, FaHatCowbo
 const Home = () => {
   const [cart, setCart] = useState([]);
   const navigate = useNavigate();
+  const storedUser = JSON.parse(localStorage.getItem("user"));
+  
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -84,7 +86,11 @@ const toggleMenu = () => {
 useEffect(() => {
   const getCart = async () => {
     try {
-      const response = await fetch("http://localhost:5000/cart");
+      const response = await fetch("http://localhost:5000/cart", {
+  headers: {
+    "user-id": storedUser?.id
+  }
+});
 
       if (!response.ok) {
         throw new Error("Failed to fetch cart");
@@ -106,49 +112,97 @@ useEffect(() => {
 // ADD PRODUCT TO CART
 // ========================================
 const handleAddToCart = async (selectedProduct) => {
+
   try {
-    const response = await fetch("http://localhost:5000/cart", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        productId: selectedProduct.id,
-        name: selectedProduct.name,
-        brand: selectedProduct.brand,
-        price: selectedProduct.price,
-        sizes: selectedProduct.sizes,
-        image: selectedProduct.image,
-        quantity: 1,
-      }),
-    });
+
+    if (!storedUser?.id) {
+      alert("Please login before adding products to cart");
+      navigate("/login");
+      return;
+    }
+
+    const response = await fetch(
+      "http://localhost:5000/cart",
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+
+          userId: storedUser.id,
+
+          productId: selectedProduct.id,
+
+          name: selectedProduct.name,
+
+          brand: selectedProduct.brand,
+
+          price: selectedProduct.price,
+
+          sizes: selectedProduct.sizes,
+
+          image: selectedProduct.image,
+
+          quantity: 1
+
+        })
+      }
+    );
 
     const data = await response.json();
 
-    console.log("ADD TO CART RESPONSE:", data);
+    console.log(
+      "ADD TO CART RESPONSE:",
+      data
+    );
 
     if (!response.ok) {
-      throw new Error(data.message || "Failed to add product");
+      throw new Error(
+        data.message ||
+        "Failed to add product"
+      );
     }
 
     // Get updated cart
-    const response2 = await fetch("http://localhost:5000/cart");
+
+    const response2 = await fetch(
+      "http://localhost:5000/cart",
+      {
+        headers: {
+          "user-id": storedUser.id
+        }
+      }
+    );
 
     if (!response2.ok) {
-      throw new Error("Failed to get updated cart");
+      throw new Error(
+        "Failed to get updated cart"
+      );
     }
 
-    const updatedCart = await response2.json();
+    const updatedCart =
+      await response2.json();
 
-    console.log("UPDATED CART:", updatedCart);
+    console.log(
+      "UPDATED CART:",
+      updatedCart
+    );
 
     setCart(updatedCart);
 
   } catch (error) {
-    console.error("ADD TO CART ERROR:", error);
+
+    console.error(
+      "ADD TO CART ERROR:",
+      error
+    );
+
+    alert(error.message);
   }
 };
-
 const cartCount = cart.reduce(
   (total, item) => total + Number(item.quantity || 1),
   0
