@@ -31,6 +31,8 @@ import img31 from "../assets/img31.jpg"
 import img32 from "../assets/img32.jpg"
 import img1 from "../assets/img1.jpg"
 import img33 from "../assets/img33.jpg"
+import img34 from "../assets/img34.jpg"
+import img35 from "../assets/img35.jpg"
 
 export const product = [
     {
@@ -326,6 +328,24 @@ export const product = [
         id : 33,
         image : img33,
         name : "Socks",
+        brand : "Davira brand",
+        sizes : "Big sizes",
+        price : 3000,
+        text : "Shop now"
+    },
+    {
+        id : 34,
+        image : img34,
+        name : "Bags",
+        brand : "Davira brand",
+        sizes : "Big sizes",
+        price : 3000,
+        text : "Shop now"
+    },
+    {
+        id : 35,
+        image : img35,
+        name : "Bags",
         brand : "Davira brand",
         sizes : "Big sizes",
         price : 3000,

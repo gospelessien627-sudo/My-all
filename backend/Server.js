@@ -17,6 +17,8 @@ const client = new MongoClient(process.env.MONGODB_URL);
 let products;
 let cart;
 let users;
+let reviews;
+let newsletter;
 
 // ========================================
 // CONNECT TO MONGODB
@@ -30,12 +32,17 @@ async function connectDB() {
   products = db.collection("products");
   cart = db.collection("cart");
   users = db.collection("users");
-
+  reviews = db.collection("reviews");
+  newsletter = db.collection("newsletter");
   // Create unique index for email
   await users.createIndex(
     { email: 1 },
     { unique: true }
   );
+  await newsletter.createIndex(
+  { email: 1 },
+  { unique: true }
+);
 
   console.log("MongoDB connected successfully");
 }
@@ -525,6 +532,64 @@ app.post("/login", async (req, res) => {
     });
   }
 });
+
+
+// ========================================
+// NEWSLETTER SUBSCRIPTION
+// POST /newsletter
+// ========================================
+
+app.post("/newsletter", async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    // Check email
+    if (!email || !email.trim()) {
+      return res.status(400).json({
+        message: "Please enter your email address"
+      });
+    }
+
+    // Clean email
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Check if email already subscribed
+    const existingSubscriber = await newsletter.findOne({
+      email: cleanEmail
+    });
+
+    if (existingSubscriber) {
+      return res.status(409).json({
+        message: "This email is already subscribed"
+      });
+    }
+
+    // Create subscriber
+    const newSubscriber = {
+      email: cleanEmail,
+      subscribedAt: new Date()
+    };
+
+    // Save to MongoDB
+    const result = await newsletter.insertOne(newSubscriber);
+
+    res.status(201).json({
+      message: "Successfully subscribed to our newsletter!",
+      subscriber: {
+        _id: result.insertedId,
+        email: cleanEmail
+      }
+    });
+
+  } catch (error) {
+    console.error("Newsletter subscription error:", error);
+
+    res.status(500).json({
+      message: "Failed to subscribe to newsletter",
+      error: error.message
+    });
+  }
+});
 // ========================================
 // GET CURRENT USER
 // ========================================
@@ -600,6 +665,80 @@ app.post("/products", async (req, res) => {
     });
   }
 });
+// ========================================
+// ADD REVIEW
+// POST /reviews
+// ========================================
+
+app.post("/reviews", async (req, res) => {
+  try {
+    const {
+      productId,
+      productName,
+      name,
+      rating,
+      comment
+    } = req.body;
+
+    // Check required fields
+    if (
+      !productId ||
+      !productName ||
+      !name?.trim() ||
+      !comment?.trim() ||
+      !rating
+    ) {
+      return res.status(400).json({
+        message: "Please fill in all review fields"
+      });
+    }
+
+    // Convert rating to number
+    const numericRating = Number(rating);
+
+    // Validate rating
+    if (
+      !Number.isInteger(numericRating) ||
+      numericRating < 1 ||
+      numericRating > 5
+    ) {
+      return res.status(400).json({
+        message: "Rating must be between 1 and 5"
+      });
+    }
+
+    // Create review FIRST
+    const newReview = {
+      productId: productId,
+      productName: productName.trim(),
+      name: name.trim(),
+      rating: numericRating,
+      comment: comment.trim(),
+      createdAt: new Date()
+    };
+
+    // Then save it to MongoDB
+    const result = await reviews.insertOne(newReview);
+
+    res.status(201).json({
+      message: "Review submitted successfully",
+
+      review: {
+        _id: result.insertedId,
+        ...newReview
+      }
+    });
+
+  } catch (error) {
+    console.error("Add review error:", error);
+
+    res.status(500).json({
+      message: "Error submitting review",
+      error: error.message
+    });
+  }
+});
+
 
 // ========================================
 // GET ALL PRODUCTS
@@ -623,6 +762,35 @@ app.get("/products", async (req, res) => {
     });
   }
 });
+// ========================================
+// GET REVIEWS FOR PRODUCT
+// GET /reviews/:productId
+// ========================================
+
+app.get("/reviews/:productId", async (req, res) => {
+  try {
+
+    const productId = req.params.productId;
+
+    const productReviews = await reviews
+      .find({ productId: productId })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.status(200).json(productReviews);
+
+  } catch (error) {
+
+    console.error("Get reviews error:", error);
+
+    res.status(500).json({
+      message: "Error fetching reviews",
+      error: error.message
+    });
+
+  }
+});
+
 
 // ========================================
 // GET ONE PRODUCT
@@ -714,6 +882,7 @@ app.put("/products/:id", async (req, res) => {
   }
 });
 
+
 // ========================================
 // DELETE PRODUCT
 // DELETE /products/:id
@@ -746,6 +915,42 @@ app.delete("/products/:id", async (req, res) => {
     });
   }
 });
+// ========================================
+// DELETE REVIEW
+// DELETE /reviews/:id
+// ========================================
+
+app.delete("/reviews/:id", async (req, res) => {
+  try {
+
+    const id = new ObjectId(req.params.id);
+
+    const result = await reviews.deleteOne({
+      _id: id
+    });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({
+        message: "Review not found"
+      });
+    }
+
+    res.status(200).json({
+      message: "Review deleted successfully"
+    });
+
+  } catch (error) {
+
+    console.error("Delete review error:", error);
+
+    res.status(500).json({
+      message: "Error deleting review",
+      error: error.message
+    });
+
+  }
+});
+
 
 // ========================================
 // ADD PRODUCT TO CART

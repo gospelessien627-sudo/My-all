@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, {  useState } from "react";
+import { useEffect } from "react";
 import { FaStar, FaTrash } from "react-icons/fa";
 import "./Reviews.css";
 import { useParams } from "react-router-dom";
@@ -28,41 +29,35 @@ const Reviews = () => {
   // ========================================
 
   const getReviews = async () => {
+  try {
 
-    try {
+    const response = await fetch(
+      `http://localhost:5000/reviews/${productId}`
+    );
 
-      const response = await fetch(
-        `http://localhost:5000/reviews/${product.id}`
-      );
+    const data = await response.json();
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message);
-      }
-
-      setReviews(data);
-
-    } catch (error) {
-
-      console.error(
-        "Error fetching reviews:",
-        error
-      );
-
-    } finally {
-
-      setLoading(false);
-
+    if (!response.ok) {
+      throw new Error(data.message);
     }
-  };
 
+    setReviews(data);
 
-  useEffect(() => {
+  } catch (error) {
 
-    getReviews();
+    console.error("Error fetching reviews:", error);
 
-  }, [productId]);
+  } finally {
+
+    setLoading(false);
+
+  }
+};
+
+    useEffect(() => {
+  getReviews();
+}, [productId]);
+
 
 
   // ========================================
@@ -90,12 +85,13 @@ const Reviews = () => {
           },
 
           body: JSON.stringify({
-            productId: product.id,
-            productName: product.name,
-            name: name,
-            rating: rating,
-            comment: comment
-          })
+  productId: productId,
+  productName: product?.name || "Product",
+  name: name,
+  rating: rating,
+  comment: comment
+})
+
         }
       );
 
