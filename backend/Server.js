@@ -16,14 +16,9 @@ const app = express();
 // CORS
 // ========================================
 app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://my-all-3397.vercel.app",
-    "https://my-all-3397-r5dhng7e0-gospels-projects-8582e4e3.vercel.app"
-  ],
+  origin: "https://my-all-3397.vercel.app",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "user-id"],
-  credentials: false
+  allowedHeaders: ["Content-Type", "user-id"]
 }));
 
 app.use(express.json());
