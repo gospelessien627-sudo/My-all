@@ -8,1543 +8,407 @@ import "dotenv/config";
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
 const app = express();
-// import express from "express";
-// import cors from "cors";
 
-// const app = express();
-
+// ========================================
+// CORS
+// ========================================
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://my-all-neon.vercel.app"
+  "https://my-all-neon.vercel.app",
 ];
 
-app.use((req, res, next) => {
-
-  const origin = req.headers.origin;
-
-  if (allowedOrigins.includes(origin)) {
-    res.header(
-      "Access-Control-Allow-Origin",
-      origin
-    );
-  }
-
-  res.header(
-    "Vary",
-    "Origin"
-  );
-
-  res.header(
-    "Access-Control-Allow-Methods",
-    "GET,POST,PUT,PATCH,DELETE,OPTIONS"
-  );
-
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, user-id"
-  );
-
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(204);
-  }
-
-  next();
-});
-
-// app.use(express.json());
-app.use(express.json());
-
-// app.options("*", cors());
-
-
-// const express = require("express");
-// const cors = require("cors");
-
-// const app = express();
-
-
-// ===============================
-// CORS
-// ===============================
-
-// const allowedOrigins = [
-//   "http://localhost:5173",
-//   "https://YOUR-FRONTEND.vercel.app"
-// ];
-
-// const corsOptions = {
-//   origin: function (origin, callback) {
-
-//     if (!origin) {
-//       return callback(null, true);
-//     }
-
-//     if (allowedOrigins.includes(origin)) {
-//       return callback(null, true);
-//     }
-
-//     return callback(new Error("Not allowed by CORS"));
-//   },
-
-//   methods: [
-//     "GET",
-//     "POST",
-//     "PUT",
-//     "DELETE",
-//     "OPTIONS"
-//   ],
-
-//   allowedHeaders: [
-//     "Content-Type",
-//     "Authorization",
-//     "user-id"
-//   ]
-// };
-
-// ===============================
-// CORS
-// ===============================
-
-// const allowedOrigins = [
-//   "http://localhost:5173"
-// ];
-
-// const corsOptions = {
-//   origin: function (origin, callback) {
-//     if (!origin) {
-//       return callback(null, true);
-//     }
-
-//     if (allowedOrigins.includes(origin)) {
-//       return callback(null, true);
-//     }
-
-//     return callback(new Error("Not allowed by CORS"));
-//   },
-
-//   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-
-//   allowedHeaders: [
-//     "Content-Type",
-//     "Authorization",
-//     "user-id"
-//   ],
-
-//   credentials: false
-// };
-
-// app.use(cors(corsOptions));
-// app.options(/.*/, cors(corsOptions));
-
-// app.options(/.*/, cors());
-
-
-// app.options(/.*/, cors(corsOptions));
+app.use(
+  cors({
+    origin: allowedOrigins,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "user-id", "Authorization"],
+  })
+);
 
 app.use(express.json());
+// Handle browser preflight requests
 
 
-// ===============================
-// DATABASE
-// ===============================
+// ========================================
+// JSON
+// ========================================
+
+
+
+
+// ========================================
+// MONGODB
+// ========================================
 
 const client = new MongoClient(
-  process.env.MONGODB_URL
+  process.env.MONGODB_URI
 );
 
 let db;
-let products;
-let cart;
-let users;
-let reviews;
-let newsletter;
-
 
 async function connectDB() {
 
-  if (db) {
-    return db;
+  if (!db) {
+
+    if (!process.env.MONGODB_URI) {
+
+      throw new Error(
+        "MONGODB_URI is missing"
+      );
+
+    }
+
+    await client.connect();
+
+    db = client.db("davira");
+
+    console.log(
+      "MongoDB connected"
+    );
   }
-
-  await client.connect();
-
-  db = client.db("clothing_store");
-
-  products = db.collection("products");
-  cart = db.collection("cart");
-  users = db.collection("users");
-  reviews = db.collection("reviews");
-  newsletter = db.collection("newsletter");
-
-  await users.createIndex(
-    { email: 1 },
-    { unique: true }
-  );
-
-  await newsletter.createIndex(
-    { email: 1 },
-    { unique: true }
-  );
-
-  console.log("MongoDB connected successfully");
 
   return db;
 }
 
 
-// ===============================
-// DATABASE MIDDLEWARE
-// ===============================
-
-app.use(async (req, res, next) => {
-
-  try {
-
-    await connectDB();
-
-    next();
-
-  } catch (error) {
-
-    console.error(
-      "Database connection error:",
-      error
-    );
-
-    res.status(500).json({
-      message: "Database connection failed"
-    });
-
-  }
-
-});
-
-// ===============================
-// DATABASE MIDDLEWARE
-// ===============================
-
-// app.use(async (req, res, next) => {
-
-//   try {
-
-//     await connectDB();
-
-//     next();
-
-//   } catch (error) {
-
-//     console.error(
-//       "Database connection error:",
-//       error
-//     );
-
-//     res.status(500).json({
-//       message: "Database connection failed"
-//     });
-
-//   }
-
-// });
-
-
-
-async function createAdmin() {
-  try {
-
-    const adminEmail = process.env.ADMIN_EMAIL;
-    const adminPassword = process.env.ADMIN_PASSWORD;
-
-    if (!adminEmail || !adminPassword) {
-      console.error(
-        "ADMIN_EMAIL or ADMIN_PASSWORD is missing"
-      );
-      return;
-    }
-
-    const existingAdmin = await users.findOne({
-      email: adminEmail.toLowerCase()
-    });
-
-    if (existingAdmin) {
-
-      await users.updateOne(
-        { email: adminEmail.toLowerCase() },
-        {
-          $set: {
-            role: "admin"
-          }
-        }
-      );
-
-      console.log("Existing user promoted to admin");
-
-      return;
-    }
-
-    const hashedPassword = await bcrypt.hash(
-      adminPassword,
-      10
-    );
-
-    await users.insertOne({
-      name: "Davira Admin",
-      email: adminEmail.toLowerCase(),
-      password: hashedPassword,
-      role: "admin",
-      createdAt: new Date()
-    });
-
-    console.log("Admin created successfully");
-
-  } catch (error) {
-
-    console.error(
-      "Error creating admin:",
-      error
-    );
-
-  }
-}
-
-app.get("/admin/products", verifyAdmin, async (req, res) => {
-
-  try {
-
-    const allProducts = await products
-      .find({})
-      .sort({ createdAt: -1 })
-      .toArray();
-
-    res.status(200).json(allProducts);
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: "Error fetching products",
-      error: error.message
-    });
-
-  }
-
-});
-app.post("/admin/products", verifyAdmin, async (req, res) => {
-
-  try {
-
-    const {
-      name,
-      brand,
-      price,
-      sizes,
-      image
-    } = req.body;
-
-    if (!name || !brand || !price || !sizes || !image) {
-
-      return res.status(400).json({
-        message: "Please fill in all product fields"
-      });
-
-    }
-
-    const newProduct = {
-
-      name: name.trim(),
-
-      brand: brand.trim(),
-
-      price: Number(price),
-
-      sizes: sizes.trim(),
-
-      image: image.trim(),
-
-      createdAt: new Date(),
-
-      updatedAt: new Date()
-
-    };
-
-    const result = await products.insertOne(
-      newProduct
-    );
-
-    res.status(201).json({
-
-      message: "Product added successfully",
-
-      product: {
-        _id: result.insertedId,
-        ...newProduct
-      }
-
-    });
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: "Error adding product",
-      error: error.message
-    });
-
-  }
-
-});
-app.put("/admin/products/:id", verifyAdmin, async (req, res) => {
-
-  try {
-
-    const id = new ObjectId(req.params.id);
-
-    const {
-      name,
-      brand,
-      price,
-      sizes,
-      image
-    } = req.body;
-
-    const result = await products.updateOne(
-
-      { _id: id },
-
-      {
-        $set: {
-
-          name: name.trim(),
-
-          brand: brand.trim(),
-
-          price: Number(price),
-
-          sizes: sizes.trim(),
-
-          image: image.trim(),
-
-          updatedAt: new Date()
-
-        }
-      }
-
-    );
-
-    if (result.matchedCount === 0) {
-
-      return res.status(404).json({
-        message: "Product not found"
-      });
-
-    }
-
-    const updatedProduct =
-      await products.findOne({
-        _id: id
-      });
-
-    res.status(200).json({
-
-      message: "Product updated successfully",
-
-      product: updatedProduct
-
-    });
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: "Error updating product",
-      error: error.message
-    });
-
-  }
-
-});
-app.delete("/admin/products/:id", verifyAdmin, async (req, res) => {
-
-  try {
-
-    const id = new ObjectId(req.params.id);
-
-    const result = await products.deleteOne({
-      _id: id
-    });
-
-    if (result.deletedCount === 0) {
-
-      return res.status(404).json({
-        message: "Product not found"
-      });
-
-    }
-
-    res.status(200).json({
-      message: "Product deleted successfully"
-    });
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: "Error deleting product",
-      error: error.message
-    });
-
-  }
-
-});
-app.get("/admin/stats", verifyAdmin, async (req, res) => {
-
-  try {
-
-    const totalProducts =
-      await products.countDocuments();
-
-    const totalUsers =
-      await users.countDocuments();
-
-    const totalCartItems =
-      await cart.countDocuments();
-
-    res.status(200).json({
-
-      totalProducts,
-
-      totalUsers,
-
-      totalCartItems
-
-    });
-
-  } catch (error) {
-
-    res.status(500).json({
-
-      message: "Error fetching dashboard statistics",
-
-      error: error.message
-
-    });
-
-  }
-
-});
-app.get("/admin/users", verifyAdmin, async (req, res) => {
-
-  try {
-
-    const allUsers = await users
-      .find(
-        {},
-        {
-          projection: {
-            password: 0
-          }
-        }
-      )
-      .sort({ createdAt: -1 })
-      .toArray();
-
-    res.status(200).json(allUsers);
-
-  } catch (error) {
-
-    res.status(500).json({
-
-      message: "Error fetching users",
-
-      error: error.message
-
-    });
-
-  }
-
-});
-
 // ========================================
-// REGISTER USER
-// POST /register
+// TEST ROUTE
 // ========================================
 
-app.post("/register", async (req, res) => {
-  try {
-    const {
-      name,
-      email,
-      password
-    } = req.body;
+app.get("/", (req, res) => {
 
-    // Check required fields
-    if (!name || !email || !password) {
-      return res.status(400).json({
-        message: "Please fill in all fields"
-      });
-    }
+  res.status(200).json({
+    message:
+      "Davira backend is working"
+  });
 
-    // Check password length
-    if (password.length < 6) {
-      return res.status(400).json({
-        message: "Password must be at least 6 characters"
-      });
-    }
-
-    // Convert email to lowercase
-    const cleanEmail = email.trim().toLowerCase();
-
-    // Check if user already exists
-    const existingUser = await users.findOne({
-      email: cleanEmail
-    });
-
-    if (existingUser) {
-      return res.status(409).json({
-        message: "Email already registered"
-      });
-    }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(
-      password,
-      10
-    );
-
-    // Create user
-    const newUser = {
-      name: name.trim(),
-      email: cleanEmail,
-      password: hashedPassword,
-      createdAt: new Date()
-    };
-
-    const result = await users.insertOne(newUser);
-
-    res.status(201).json({
-      message: "Registration successful",
-      user: {
-        id: result.insertedId,
-        name: newUser.name,
-        email: newUser.email
-      }
-    });
-
-  } catch (error) {
-
-    console.error("Registration error:", error);
-
-    // Handle duplicate email
-    if (error.code === 11000) {
-      return res.status(409).json({
-        message: "Email already registered"
-      });
-    }
-
-    res.status(500).json({
-      message: "Server error during registration"
-    });
-  }
-});
-
-// ========================================
-// LOGIN USER
-// POST /login
-// ========================================
-
-app.post("/login", async (req, res) => {
-  try {
-
-    const {
-      email,
-      password
-    } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({
-        message: "Please enter email and password"
-      });
-    }
-
-    const cleanEmail = email
-      .trim()
-      .toLowerCase();
-
-    const user = await users.findOne({
-      email: cleanEmail
-    });
-
-    if (!user) {
-      return res.status(401).json({
-        message: "Invalid email or password"
-      });
-    }
-
-    const passwordMatch = await bcrypt.compare(
-      password,
-      user.password
-    );
-
-    if (!passwordMatch) {
-      return res.status(401).json({
-        message: "Invalid email or password"
-      });
-    }
-
-    res.status(200).json({
-      message: "Login successful",
-
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role || "user"
-      }
-    });
-
-  } catch (error) {
-
-    console.error("Login error:", error);
-
-    res.status(500).json({
-      message: "Server error during login"
-    });
-  }
-});
-
-
-// ========================================
-// NEWSLETTER SUBSCRIPTION
-// POST /newsletter
-// ========================================
-
-app.post("/newsletter", async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    // Check email
-    if (!email || !email.trim()) {
-      return res.status(400).json({
-        message: "Please enter your email address"
-      });
-    }
-
-    // Clean email
-    const cleanEmail = email.trim().toLowerCase();
-
-    // Check if email already subscribed
-    const existingSubscriber = await newsletter.findOne({
-      email: cleanEmail
-    });
-
-    if (existingSubscriber) {
-      return res.status(409).json({
-        message: "This email is already subscribed"
-      });
-    }
-
-    // Create subscriber
-    const newSubscriber = {
-      email: cleanEmail,
-      subscribedAt: new Date()
-    };
-
-    // Save to MongoDB
-    const result = await newsletter.insertOne(newSubscriber);
-
-    res.status(201).json({
-      message: "Successfully subscribed to our newsletter!",
-      subscriber: {
-        _id: result.insertedId,
-        email: cleanEmail
-      }
-    });
-
-  } catch (error) {
-    console.error("Newsletter subscription error:", error);
-
-    res.status(500).json({
-      message: "Failed to subscribe to newsletter",
-      error: error.message
-    });
-  }
-});
-// ========================================
-// GET CURRENT USER
-// ========================================
-
-app.get("/users/:id", async (req, res) => {
-  try {
-
-    const id = new ObjectId(req.params.id);
-
-    const user = await users.findOne(
-      { _id: id },
-      {
-        projection: {
-          password: 0
-        }
-      }
-    );
-
-    if (!user) {
-      return res.status(404).json({
-        message: "User not found"
-      });
-    }
-
-    res.status(200).json(user);
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: "Error fetching user",
-      error: error.message
-    });
-  }
-});
-
-// ========================================
-// CREATE PRODUCT
-// POST /products
-// ========================================
-
-app.post("/products", async (req, res) => {
-  try {
-
-    const {
-      name,
-      brand,
-      price,
-      sizes,
-      image
-    } = req.body;
-
-    const product = {
-      name,
-      brand,
-      price,
-      sizes,
-      image,
-      createdAt: new Date()
-    };
-
-    const result = await products.insertOne(product);
-
-    res.status(201).json({
-      message: "Product created successfully",
-      productId: result.insertedId
-    });
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: "Error creating product",
-      error: error.message
-    });
-  }
-});
-// ========================================
-// ADD REVIEW
-// POST /reviews
-// ========================================
-
-app.post("/reviews", async (req, res) => {
-  try {
-    const {
-      productId,
-      productName,
-      name,
-      rating,
-      comment
-    } = req.body;
-
-    // Check required fields
-    if (
-      !productId ||
-      !productName ||
-      !name?.trim() ||
-      !comment?.trim() ||
-      !rating
-    ) {
-      return res.status(400).json({
-        message: "Please fill in all review fields"
-      });
-    }
-
-    // Convert rating to number
-    const numericRating = Number(rating);
-
-    // Validate rating
-    if (
-      !Number.isInteger(numericRating) ||
-      numericRating < 1 ||
-      numericRating > 5
-    ) {
-      return res.status(400).json({
-        message: "Rating must be between 1 and 5"
-      });
-    }
-
-    // Create review FIRST
-    const newReview = {
-      productId: productId,
-      productName: productName.trim(),
-      name: name.trim(),
-      rating: numericRating,
-      comment: comment.trim(),
-      createdAt: new Date()
-    };
-
-    // Then save it to MongoDB
-    const result = await reviews.insertOne(newReview);
-
-    res.status(201).json({
-      message: "Review submitted successfully",
-
-      review: {
-        _id: result.insertedId,
-        ...newReview
-      }
-    });
-
-  } catch (error) {
-    console.error("Add review error:", error);
-
-    res.status(500).json({
-      message: "Error submitting review",
-      error: error.message
-    });
-  }
-});
-
-
-// ========================================
-// GET ALL PRODUCTS
-// GET /products
-// ========================================
-
-app.get("/products", async (req, res) => {
-  try {
-
-    const allProducts = await products
-      .find({})
-      .toArray();
-
-    res.status(200).json(allProducts);
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: "Error fetching products",
-      error: error.message
-    });
-  }
-});
-// ========================================
-// GET REVIEWS FOR PRODUCT
-// GET /reviews/:productId
-// ========================================
-
-app.get("/reviews/:productId", async (req, res) => {
-  try {
-
-    const productId = req.params.productId;
-
-    const productReviews = await reviews
-      .find({ productId: productId })
-      .sort({ createdAt: -1 })
-      .toArray();
-
-    res.status(200).json(productReviews);
-
-  } catch (error) {
-
-    console.error("Get reviews error:", error);
-
-    res.status(500).json({
-      message: "Error fetching reviews",
-      error: error.message
-    });
-
-  }
-});
-
-
-// ========================================
-// GET ONE PRODUCT
-// GET /products/:id
-// ========================================
-
-app.get("/products/:id", async (req, res) => {
-  try {
-
-    const id = new ObjectId(req.params.id);
-
-    const product = await products.findOne({
-      _id: id
-    });
-
-    if (!product) {
-      return res.status(404).json({
-        message: "Product not found"
-      });
-    }
-
-    res.status(200).json(product);
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: "Error fetching product",
-      error: error.message
-    });
-  }
-});
-
-// ========================================
-// UPDATE PRODUCT
-// PUT /products/:id
-// ========================================
-
-app.put("/products/:id", async (req, res) => {
-  try {
-
-    const id = new ObjectId(req.params.id);
-
-    const {
-      name,
-      category,
-      brand,
-      price,
-      sizes,
-      colors,
-      stock,
-      description,
-      image
-    } = req.body;
-
-    const result = await products.updateOne(
-      { _id: id },
-      {
-        $set: {
-          name,
-          category,
-          brand,
-          price,
-          sizes,
-          colors,
-          stock,
-          description,
-          image,
-          updatedAt: new Date()
-        }
-      }
-    );
-
-    if (result.matchedCount === 0) {
-      return res.status(404).json({
-        message: "Product not found"
-      });
-    }
-
-    res.status(200).json({
-      message: "Product updated successfully"
-    });
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: "Error updating product",
-      error: error.message
-    });
-  }
-});
-
-
-// ========================================
-// DELETE PRODUCT
-// DELETE /products/:id
-// ========================================
-
-app.delete("/products/:id", async (req, res) => {
-  try {
-
-    const id = new ObjectId(req.params.id);
-
-    const result = await products.deleteOne({
-      _id: id
-    });
-
-    if (result.deletedCount === 0) {
-      return res.status(404).json({
-        message: "Product not found"
-      });
-    }
-
-    res.status(200).json({
-      message: "Product deleted successfully"
-    });
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: "Error deleting product",
-      error: error.message
-    });
-  }
-});
-// ========================================
-// DELETE REVIEW
-// DELETE /reviews/:id
-// ========================================
-
-app.delete("/reviews/:id", async (req, res) => {
-  try {
-
-    const id = new ObjectId(req.params.id);
-
-    const result = await reviews.deleteOne({
-      _id: id
-    });
-
-    if (result.deletedCount === 0) {
-      return res.status(404).json({
-        message: "Review not found"
-      });
-    }
-
-    res.status(200).json({
-      message: "Review deleted successfully"
-    });
-
-  } catch (error) {
-
-    console.error("Delete review error:", error);
-
-    res.status(500).json({
-      message: "Error deleting review",
-      error: error.message
-    });
-
-  }
-});
-
-
-// ========================================
-// ADD PRODUCT TO CART
-// POST /cart
-// ========================================
-
-// ========================================
-// ADD PRODUCT TO CART
-// POST /cart
-// ========================================
-app.post("/cart", async (req, res) => {
-  try {
-
-    const userId = req.headers["user-id"];
-
-    const {
-      productId,
-      name,
-      brand,
-      price,
-      sizes,
-      image,
-      quantity
-    } = req.body;
-
-    if (!userId || !productId || !name || price === undefined) {
-      return res.status(400).json({
-        message: "Invalid cart information"
-      });
-    }
-
-    let userObjectId;
-
-    try {
-      userObjectId = new ObjectId(userId);
-    } catch (error) {
-      return res.status(400).json({
-        message: "Invalid user ID"
-      });
-    }
-
-    // Make sure the user actually exists
-    const user = await users.findOne({
-      _id: userObjectId
-    });
-
-    if (!user) {
-      return res.status(401).json({
-        message: "User not found. Please login again."
-      });
-    }
-
-    const cartProduct = {
-      userId: userObjectId,
-      productId: String(productId),
-      name: name.trim(),
-      brand: brand?.trim() || "",
-      price: Number(price),
-      sizes: sizes || "",
-      image: image || "",
-      quantity: Number(quantity) || 1,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    const result = await cart.insertOne(cartProduct);
-
-    res.status(201).json({
-      message: "Product added to cart",
-      cartId: result.insertedId,
-      product: {
-        _id: result.insertedId,
-        ...cartProduct
-      }
-    });
-
-  } catch (error) {
-
-    console.error("Add to cart error:", error);
-
-    res.status(500).json({
-      message: "Failed to add product to cart",
-      error: error.message
-    });
-  }
 });
 
 
 // ========================================
 // GET CART
-// GET /cart
 // ========================================
 
 app.get("/cart", async (req, res) => {
+
   try {
 
-    const userId = req.headers["user-id"];
+    const userId =
+      req.headers["user-id"];
 
     if (!userId) {
-      return res.status(401).json({
-        message: "Please login first"
-      });
-    }
 
-    let userObjectId;
-
-    try {
-      userObjectId = new ObjectId(userId);
-    } catch (error) {
       return res.status(400).json({
-        message: "Invalid user ID"
+        message:
+          "User ID is required"
       });
+
     }
 
-    const cartProducts = await cart
-      .find({
-        userId: userObjectId
-      })
-      .toArray();
+    if (!ObjectId.isValid(userId)) {
 
-    res.status(200).json(cartProducts);
+      return res.status(400).json({
+        message:
+          "Invalid user ID"
+      });
+
+    }
+
+    const database =
+      await connectDB();
+
+    const cartCollection =
+      database.collection("cart");
+
+    const cart =
+      await cartCollection
+        .find({
+          userId:
+            new ObjectId(userId)
+        })
+        .sort({
+          createdAt: -1
+        })
+        .toArray();
+
+    res.status(200).json(cart);
 
   } catch (error) {
 
-    console.error("Get cart error:", error);
-
-    res.status(500).json({
-      message: "Error fetching cart",
-      error: error.message
-    });
-  }
-});
-
-// ========================================
-// UPDATE CART QUANTITY
-// PUT /cart/:id
-// ========================================
-
-app.put("/cart/:id", async (req, res) => {
-  try {
-
-    const id = new ObjectId(req.params.id);
-
-    const {
-      quantity
-    } = req.body;
-
-    if (!quantity || quantity < 1) {
-      return res.status(400).json({
-        message: "Quantity must be at least 1"
-      });
-    }
-
-    const result = await cart.updateOne(
-      { _id: id },
-      {
-        $set: {
-          quantity: quantity,
-          updatedAt: new Date()
-        }
-      }
+    console.error(
+      "GET CART ERROR:",
+      error
     );
 
-    if (result.matchedCount === 0) {
-      return res.status(404).json({
-        message: "Cart product not found"
-      });
-    }
-
-    const updatedProduct = await cart.findOne({
-      _id: id
-    });
-
-    res.status(200).json({
-      message: "Cart updated successfully",
-      product: updatedProduct
-    });
-
-  } catch (error) {
-
-    console.error(error);
-
     res.status(500).json({
-      message: "Error updating cart",
-      error: error.message
+      message:
+        "Failed to get cart"
     });
+
   }
+
 });
 
-// ========================================
-// DELETE CART PRODUCT
-// DELETE /cart/:id
-// ========================================
-
-app.delete("/cart/:id", async (req, res) => {
-  try {
-
-    const id = new ObjectId(req.params.id);
-
-    const result = await cart.deleteOne({
-      _id: id
-    });
-
-    if (result.deletedCount === 0) {
-      return res.status(404).json({
-        message: "Cart product not found"
-      });
-    }
-
-    res.status(200).json({
-      message: "Product removed from cart"
-    });
-
-  } catch (error) {
-
-    res.status(500).json({
-      message: "Error removing product from cart",
-      error: error.message
-    });
-  }
-});
 
 // ========================================
-// CREATE PAYMENT
-// POST /payment
+// ADD PRODUCT TO CART
 // ========================================
 
-// ========================================
-// CREATE PAYMENT
-// POST /payment
-// ========================================
-
-app.post("/payment", async (req, res) => {
+app.post("/cart", async (req, res) => {
 
   try {
 
     const {
       userId,
-      email,
-      cartId,
-      productName,
-      quantity,
-      amount
+      productId,
+      name,
+      brand,
+      price,
+      sizes,
+      image,
+      quantity
     } = req.body;
 
 
     // ========================================
-    // CHECK REQUIRED FIELDS
+    // VALIDATE REQUIRED DATA
     // ========================================
 
     if (
       !userId ||
-      !email ||
-      !cartId ||
-      !productName ||
-      !quantity ||
-      !amount
+      productId === undefined ||
+      !name ||
+      !brand ||
+      price === undefined ||
+      !sizes ||
+      !image
     ) {
 
       return res.status(400).json({
-        message: "Missing payment information"
+        message:
+          "Missing product information"
       });
 
     }
 
 
     // ========================================
-    // CHECK USER
+    // VALIDATE USER ID
     // ========================================
 
-    let user;
-
-    try {
-
-      user = await users.findOne({
-        _id: new ObjectId(userId)
-      });
-
-    } catch (error) {
+    if (!ObjectId.isValid(userId)) {
 
       return res.status(400).json({
-        message: "Invalid user ID"
+        message:
+          "Invalid user ID"
       });
 
     }
 
 
-    if (!user) {
+    const numericProductId =
+      Number(productId);
 
-      return res.status(401).json({
-        message: "User not found. Please login again."
-      });
+    const numericPrice =
+      Number(price);
 
-    }
+    const numericQuantity =
+      Number(quantity || 1);
 
 
-    // ========================================
-    // GET PRODUCT FROM CART
-    // ========================================
-
-    let cartItem;
-
-    try {
-
-      cartItem = await cart.findOne({
-        _id: new ObjectId(cartId)
-      });
-
-    } catch (error) {
+    if (
+      !Number.isInteger(
+        numericProductId
+      )
+    ) {
 
       return res.status(400).json({
-        message: "Invalid cart ID"
+        message:
+          "Invalid product ID"
       });
 
     }
 
 
-    if (!cartItem) {
+    if (
+      !Number.isFinite(
+        numericPrice
+      ) ||
+      numericPrice < 0
+    ) {
 
-      return res.status(404).json({
-        message: "Cart item not found"
+      return res.status(400).json({
+        message:
+          "Invalid product price"
+      });
+
+    }
+
+
+    if (
+      !Number.isInteger(
+        numericQuantity
+      ) ||
+      numericQuantity < 1
+    ) {
+
+      return res.status(400).json({
+        message:
+          "Invalid quantity"
+      });
+
+    }
+
+
+    const database =
+      await connectDB();
+
+    const cartCollection =
+      database.collection("cart");
+
+
+    const mongoUserId =
+      new ObjectId(userId);
+
+
+    // ========================================
+    // CHECK EXISTING PRODUCT
+    // ========================================
+
+    const existingProduct =
+      await cartCollection.findOne({
+        userId: mongoUserId,
+        productId: numericProductId
+      });
+
+
+    // ========================================
+    // PRODUCT ALREADY EXISTS
+    // ========================================
+
+    if (existingProduct) {
+
+      const newQuantity =
+        Number(
+          existingProduct.quantity || 1
+        ) + numericQuantity;
+
+
+      const updatedProduct =
+        await cartCollection.findOneAndUpdate(
+
+          {
+            _id:
+              existingProduct._id
+          },
+
+          {
+            $set: {
+              quantity:
+                newQuantity,
+
+              updatedAt:
+                new Date()
+            }
+          },
+
+          {
+            returnDocument:
+              "after"
+          }
+
+        );
+
+
+      return res.status(200).json({
+
+        message:
+          "Product quantity updated",
+
+        cartItem:
+          updatedProduct
+
       });
 
     }
 
 
     // ========================================
-    // CALCULATE AMOUNT FROM CART
+    // CREATE NEW CART ITEM
     // ========================================
 
-    const cartQuantity =
-      Number(cartItem.quantity) || 1;
+    const newCartItem = {
 
-    const productPrice =
-      Number(cartItem.price);
+      userId:
+        mongoUserId,
 
-    const totalAmount =
-      productPrice * cartQuantity;
+      productId:
+        numericProductId,
 
+      name:
+        name.trim(),
 
-    // ========================================
-    // CREATE PAYMENT RECORD
-    // ========================================
+      brand:
+        brand.trim(),
 
-    const payment = {
+      price:
+        numericPrice,
 
-      userId: user._id,
+      sizes:
+        sizes,
 
-      email: user.email,
+      image:
+        image,
 
-      cartId: cartItem._id,
+      quantity:
+        numericQuantity,
 
-      productName: cartItem.name,
+      createdAt:
+        new Date(),
 
-      quantity: cartQuantity,
-
-      amount: totalAmount,
-
-      status: "pending",
-
-      createdAt: new Date()
+      updatedAt:
+        new Date()
 
     };
 
 
-    // ========================================
-    // PAYMENT COLLECTION
-    // ========================================
-
-    const paymentCollection =
-      client
-        .db("clothing_store")
-        .collection("payments");
-
-
-    // ========================================
-    // SAVE PAYMENT
-    // ========================================
-
     const result =
-      await paymentCollection.insertOne(
-        payment
+      await cartCollection.insertOne(
+        newCartItem
       );
 
 
     // ========================================
-    // SEND RESPONSE
+    // RESPONSE
     // ========================================
 
     res.status(201).json({
 
       message:
-        "Payment created successfully",
+        "Product added to cart successfully",
 
-      paymentId:
-        result.insertedId,
+      cartItem: {
 
-      amount:
-        totalAmount,
+        _id:
+          result.insertedId,
 
-      email:
-        user.email
+        ...newCartItem
+
+      }
 
     });
-
 
   } catch (error) {
 
     console.error(
-      "Payment error:",
+      "ADD TO CART ERROR:",
       error
     );
 
     res.status(500).json({
 
       message:
-        "Error creating payment",
-
-      error:
-        error.message
+        "Failed to add product to cart"
 
     });
 
@@ -1552,46 +416,1838 @@ app.post("/payment", async (req, res) => {
 
 });
 
+
 // ========================================
-// SERVER URL
+// UPDATE CART QUANTITY
 // ========================================
 
-// const PORT = process.env.PORT || 5000;
+app.put("/cart/:id", async (req, res) => {
 
-// if (process.env.NODE_ENV !== "production") {
+  try {
 
-//   connectDB()
-//     .then(async () => {
+    const { id } =
+      req.params;
 
-//       await createAdmin();
+    const {
+      quantity
+    } = req.body;
 
-//       app.listen(PORT, () => {
 
-//         console.log(
-//           `Server running at http://localhost:${PORT}`
-//         );
+    // ========================================
+    // VALIDATE CART ID
+    // ========================================
 
-//       });
+    if (!ObjectId.isValid(id)) {
 
-//     })
-//     .catch((error) => {
+      return res.status(400).json({
+        message:
+          "Invalid cart item ID"
+      });
 
-//       console.error(
-//         "Server startup error:",
-//         error
-//       );
+    }
 
-//     });
 
-// }
+    const newQuantity =
+      Number(quantity);
 
-const PORT = process.env.PORT || 5000;
 
-if (process.env.NODE_ENV !== "production") {
-  app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
-  });
+    // ========================================
+    // VALIDATE QUANTITY
+    // ========================================
+
+    if (
+      !Number.isInteger(
+        newQuantity
+      ) ||
+      newQuantity < 1
+    ) {
+
+      return res.status(400).json({
+        message:
+          "Quantity must be at least 1"
+      });
+
+    }
+
+
+    const database =
+      await connectDB();
+
+    const cartCollection =
+      database.collection("cart");
+
+
+    // ========================================
+    // UPDATE
+    // ========================================
+
+    const updatedCartItem =
+      await cartCollection.findOneAndUpdate(
+
+        {
+          _id:
+            new ObjectId(id)
+        },
+
+        {
+          $set: {
+
+            quantity:
+              newQuantity,
+
+            updatedAt:
+              new Date()
+
+          }
+        },
+
+        {
+          returnDocument:
+            "after"
+        }
+
+      );
+
+
+    if (!updatedCartItem) {
+
+      return res.status(404).json({
+        message:
+          "Cart item not found"
+      });
+
+    }
+
+
+    res.status(200).json({
+
+      message:
+        "Cart quantity updated",
+
+      cartItem:
+        updatedCartItem
+
+    });
+
+  } catch (error) {
+
+    console.error(
+      "UPDATE CART ERROR:",
+      error
+    );
+
+    res.status(500).json({
+
+      message:
+        "Failed to update cart"
+
+    });
+
+  }
+
+});
+
+
+// ========================================
+// DELETE CART ITEM
+// ========================================
+
+app.delete("/cart/:id", async (req, res) => {
+
+  try {
+
+    const { id } =
+      req.params;
+
+
+    // ========================================
+    // VALIDATE ID
+    // ========================================
+
+    if (!ObjectId.isValid(id)) {
+
+      return res.status(400).json({
+        message:
+          "Invalid cart item ID"
+      });
+
+    }
+
+
+    const database =
+      await connectDB();
+
+    const cartCollection =
+      database.collection("cart");
+
+
+    // ========================================
+    // DELETE
+    // ========================================
+
+    const result =
+      await cartCollection.deleteOne({
+
+        _id:
+          new ObjectId(id)
+
+      });
+
+
+    if (
+      result.deletedCount === 0
+    ) {
+
+      return res.status(404).json({
+
+        message:
+          "Cart item not found"
+
+      });
+
+    }
+
+
+    res.status(200).json({
+
+      message:
+        "Cart item deleted successfully"
+
+    });
+
+  } catch (error) {
+
+    console.error(
+      "DELETE CART ERROR:",
+      error
+    );
+
+    res.status(500).json({
+
+      message:
+        "Failed to delete cart item"
+
+    });
+
+  }
+
+});
+
+
+// ========================================
+// GET REVIEWS FOR PRODUCT
+// ========================================
+
+app.get(
+  "/reviews/:productId",
+  async (req, res) => {
+
+    try {
+
+      const {
+        productId
+      } = req.params;
+
+
+      if (!productId) {
+
+        return res.status(400).json({
+
+          message:
+            "Product ID is required"
+
+        });
+
+      }
+
+
+      const numericProductId =
+        Number(productId);
+
+
+      if (
+        !Number.isInteger(
+          numericProductId
+        )
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Invalid product ID"
+
+        });
+
+      }
+
+
+      const database =
+        await connectDB();
+
+      const reviewsCollection =
+        database.collection(
+          "reviews"
+        );
+
+
+      const reviews =
+        await reviewsCollection
+          .find({
+
+            productId:
+              numericProductId
+
+          })
+          .sort({
+
+            createdAt:
+              -1
+
+          })
+          .toArray();
+
+
+      res.status(200).json(
+        reviews
+      );
+
+    } catch (error) {
+
+      console.error(
+        "GET REVIEWS ERROR:",
+        error
+      );
+
+      res.status(500).json({
+
+        message:
+          "Failed to get reviews"
+
+      });
+
+    }
+
+  }
+);
+
+
+// ========================================
+// ADD REVIEW
+// ========================================
+
+app.post(
+  "/reviews",
+  async (req, res) => {
+
+    try {
+
+      const {
+        productId,
+        productName,
+        name,
+        rating,
+        comment
+      } = req.body;
+
+
+      // ========================================
+      // REQUIRED DATA
+      // ========================================
+
+      if (
+        productId === undefined ||
+        !name ||
+        rating === undefined ||
+        !comment
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Please provide all review information"
+
+        });
+
+      }
+
+
+      const cleanName =
+        name.trim();
+
+      const cleanComment =
+        comment.trim();
+
+
+      if (
+        !cleanName ||
+        !cleanComment
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Name and comment cannot be empty"
+
+        });
+
+      }
+
+
+      // ========================================
+      // PRODUCT ID
+      // ========================================
+
+      const reviewProductId =
+        Number(productId);
+
+
+      if (
+        !Number.isInteger(
+          reviewProductId
+        )
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Invalid product ID"
+
+        });
+
+      }
+
+
+      // ========================================
+      // RATING
+      // ========================================
+
+      const reviewRating =
+        Number(rating);
+
+
+      if (
+        !Number.isInteger(
+          reviewRating
+        ) ||
+        reviewRating < 1 ||
+        reviewRating > 5
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Rating must be between 1 and 5"
+
+        });
+
+      }
+
+
+      const database =
+        await connectDB();
+
+      const reviewsCollection =
+        database.collection(
+          "reviews"
+        );
+
+
+      // ========================================
+      // CREATE REVIEW
+      // ========================================
+
+      const newReview = {
+
+        productId:
+          reviewProductId,
+
+        productName:
+          productName?.trim() ||
+          "Product",
+
+        name:
+          cleanName,
+
+        rating:
+          reviewRating,
+
+        comment:
+          cleanComment,
+
+        createdAt:
+          new Date(),
+
+        updatedAt:
+          new Date()
+
+      };
+
+
+      const result =
+        await reviewsCollection.insertOne(
+          newReview
+        );
+
+
+      res.status(201).json({
+
+        message:
+          "Review submitted successfully",
+
+        review: {
+
+          _id:
+            result.insertedId,
+
+          ...newReview
+
+        }
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "ADD REVIEW ERROR:",
+        error
+      );
+
+      res.status(500).json({
+
+        message:
+          "Failed to submit review"
+
+      });
+
+    }
+
+  }
+);
+
+
+// ========================================
+// DELETE REVIEW
+// ========================================
+
+app.delete(
+  "/reviews/:id",
+  async (req, res) => {
+
+    try {
+
+      const { id } =
+        req.params;
+
+
+      if (
+        !ObjectId.isValid(id)
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Invalid review ID"
+
+        });
+
+      }
+
+
+      const database =
+        await connectDB();
+
+      const reviewsCollection =
+        database.collection(
+          "reviews"
+        );
+
+
+      const result =
+        await reviewsCollection.deleteOne({
+
+          _id:
+            new ObjectId(id)
+
+        });
+
+
+      if (
+        result.deletedCount === 0
+      ) {
+
+        return res.status(404).json({
+
+          message:
+            "Review not found"
+
+        });
+
+      }
+
+
+      res.status(200).json({
+
+        message:
+          "Review deleted successfully"
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "DELETE REVIEW ERROR:",
+        error
+      );
+
+      res.status(500).json({
+
+        message:
+          "Failed to delete review"
+
+      });
+
+    }
+
+  }
+);
+
+
+// ========================================
+// REGISTER
+// ========================================
+
+app.post(
+  "/register",
+  async (req, res) => {
+
+    try {
+
+      const {
+        name,
+        email,
+        password
+      } = req.body;
+
+
+      // ========================================
+      // REQUIRED DATA
+      // ========================================
+
+      if (
+        !name ||
+        !email ||
+        !password
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Please provide name, email and password"
+
+        });
+
+      }
+
+
+      const cleanName =
+        name.trim();
+
+      const cleanEmail =
+        email
+          .trim()
+          .toLowerCase();
+
+
+      // ========================================
+      // VALIDATE NAME
+      // ========================================
+
+      if (!cleanName) {
+
+        return res.status(400).json({
+
+          message:
+            "Name cannot be empty"
+
+        });
+
+      }
+
+
+      // ========================================
+      // VALIDATE EMAIL
+      // ========================================
+
+      const emailRegex =
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+
+      if (
+        !emailRegex.test(
+          cleanEmail
+        )
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Please provide a valid email address"
+
+        });
+
+      }
+
+
+      // ========================================
+      // VALIDATE PASSWORD
+      // ========================================
+
+      if (
+        password.length < 6
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Password must be at least 6 characters"
+
+        });
+
+      }
+
+
+      // ========================================
+      // DATABASE
+      // ========================================
+
+      const database =
+        await connectDB();
+
+      const usersCollection =
+        database.collection(
+          "users"
+        );
+
+
+      // ========================================
+      // CHECK EXISTING USER
+      // ========================================
+
+      const existingUser =
+        await usersCollection.findOne({
+
+          email:
+            cleanEmail
+
+        });
+
+
+      if (existingUser) {
+
+        return res.status(409).json({
+
+          message:
+            "An account with this email already exists"
+
+        });
+
+      }
+
+
+      // ========================================
+      // HASH PASSWORD
+      // ========================================
+
+      const hashedPassword =
+        await bcrypt.hash(
+          password,
+          10
+        );
+
+
+      // ========================================
+      // CREATE USER
+      // ========================================
+
+      const newUser = {
+
+        name:
+          cleanName,
+
+        email:
+          cleanEmail,
+
+        password:
+          hashedPassword,
+
+        role:
+          "user",
+
+        createdAt:
+          new Date(),
+
+        updatedAt:
+          new Date()
+
+      };
+
+
+      const result =
+        await usersCollection.insertOne(
+          newUser
+        );
+
+
+      // ========================================
+      // RESPONSE
+      // ========================================
+
+      res.status(201).json({
+
+        message:
+          "Registration successful",
+
+        user: {
+
+          id:
+            result.insertedId.toString(),
+
+          name:
+            cleanName,
+
+          email:
+            cleanEmail,
+
+          role:
+            "user"
+
+        }
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "REGISTER ERROR:",
+        error
+      );
+
+      res.status(500).json({
+
+        message:
+          "Registration failed"
+
+      });
+
+    }
+
+  }
+);
+
+
+// ========================================
+// LOGIN
+// ========================================
+
+app.post(
+  "/login",
+  async (req, res) => {
+
+    try {
+
+      const {
+        email,
+        password
+      } = req.body;
+
+
+      // ========================================
+      // REQUIRED DATA
+      // ========================================
+
+      if (
+        !email ||
+        !password
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Please provide email and password"
+
+        });
+
+      }
+
+
+      const cleanEmail =
+        email
+          .trim()
+          .toLowerCase();
+
+
+      // ========================================
+      // DATABASE
+      // ========================================
+
+      const database =
+        await connectDB();
+
+      const usersCollection =
+        database.collection(
+          "users"
+        );
+
+
+      // ========================================
+      // FIND USER
+      // ========================================
+
+      const user =
+        await usersCollection.findOne({
+
+          email:
+            cleanEmail
+
+        });
+
+
+      if (!user) {
+
+        return res.status(401).json({
+
+          message:
+            "Invalid email or password"
+
+        });
+
+      }
+
+
+      // ========================================
+      // CHECK PASSWORD
+      // ========================================
+
+      const passwordCorrect =
+        await bcrypt.compare(
+
+          password,
+
+          user.password
+
+        );
+
+
+      if (!passwordCorrect) {
+
+        return res.status(401).json({
+
+          message:
+            "Invalid email or password"
+
+        });
+
+      }
+
+
+      // ========================================
+      // LOGIN SUCCESS
+      // ========================================
+
+      res.status(200).json({
+
+        message:
+          "Login successful",
+
+        user: {
+
+          id:
+            user._id.toString(),
+
+          name:
+            user.name,
+
+          email:
+            user.email,
+
+          role:
+            user.role ||
+            "user"
+
+        }
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "LOGIN ERROR:",
+        error
+      );
+
+      res.status(500).json({
+
+        message:
+          "Login failed"
+
+      });
+
+    }
+
+  }
+);
+
+
+// ========================================
+// CREATE ADMIN ACCOUNT
+// ========================================
+
+async function createAdmin() {
+
+  try {
+
+    const adminEmail =
+      process.env.ADMIN_EMAIL
+        ?.trim()
+        .toLowerCase();
+
+    const adminPassword =
+      process.env.ADMIN_PASSWORD;
+
+
+    // ========================================
+    // CHECK ENVIRONMENT VARIABLES
+    // ========================================
+
+    if (
+      !adminEmail ||
+      !adminPassword
+    ) {
+
+      console.log(
+        "ADMIN_EMAIL or ADMIN_PASSWORD is missing. Admin setup skipped."
+      );
+
+      return;
+
+    }
+
+
+    const database =
+      await connectDB();
+
+    const usersCollection =
+      database.collection(
+        "users"
+      );
+
+
+    // ========================================
+    // CHECK ADMIN
+    // ========================================
+
+    const existingAdmin =
+      await usersCollection.findOne({
+
+        email:
+          adminEmail
+
+      });
+
+
+    if (existingAdmin) {
+
+      console.log(
+        "Admin account already exists."
+      );
+
+      return;
+
+    }
+
+
+    // ========================================
+    // HASH ADMIN PASSWORD
+    // ========================================
+
+    const hashedPassword =
+      await bcrypt.hash(
+        adminPassword,
+        10
+      );
+
+
+    // ========================================
+    // CREATE ADMIN
+    // ========================================
+
+    await usersCollection.insertOne({
+
+      name:
+        "Davira Admin",
+
+      email:
+        adminEmail,
+
+      password:
+        hashedPassword,
+
+      role:
+        "admin",
+
+      createdAt:
+        new Date(),
+
+      updatedAt:
+        new Date()
+
+    });
+
+
+    console.log(
+      "Admin account created successfully."
+    );
+
+  } catch (error) {
+
+    console.error(
+      "CREATE ADMIN ERROR:",
+      error
+    );
+
+  }
+
 }
 
-// export default app;
+
+// ========================================
+// NEWSLETTER
+// ========================================
+
+app.post(
+  "/newsletter",
+  async (req, res) => {
+
+    try {
+
+      const {
+        email
+      } = req.body;
+
+
+      if (!email) {
+
+        return res.status(400).json({
+
+          message:
+            "Please enter your email"
+
+        });
+
+      }
+
+
+      const cleanEmail =
+        email
+          .trim()
+          .toLowerCase();
+
+
+      const emailRegex =
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+
+      if (
+        !emailRegex.test(
+          cleanEmail
+        )
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Please enter a valid email address"
+
+        });
+
+      }
+
+
+      const database =
+        await connectDB();
+
+      const newsletterCollection =
+        database.collection(
+          "newsletter"
+        );
+
+
+      // ========================================
+      // CHECK EXISTING SUBSCRIBER
+      // ========================================
+
+      const existingSubscriber =
+        await newsletterCollection.findOne({
+
+          email:
+            cleanEmail
+
+        });
+
+
+      if (existingSubscriber) {
+
+        return res.status(409).json({
+
+          message:
+            "This email is already subscribed"
+
+        });
+
+      }
+
+
+      // ========================================
+      // SAVE SUBSCRIBER
+      // ========================================
+
+      await newsletterCollection.insertOne({
+
+        email:
+          cleanEmail,
+
+        createdAt:
+          new Date()
+
+      });
+
+
+      res.status(201).json({
+
+        message:
+          "Successfully subscribed to our newsletter"
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "NEWSLETTER ERROR:",
+        error
+      );
+
+      res.status(500).json({
+
+        message:
+          "Failed to subscribe to newsletter"
+
+      });
+
+    }
+
+  }
+);
+
+
+// ========================================
+// CREATE PAYMENT RECORD
+// ========================================
+
+app.post(
+  "/payment",
+  async (req, res) => {
+
+    try {
+
+      const {
+        userId,
+        email,
+        cartId,
+        productName,
+        quantity
+      } = req.body;
+
+
+      // ========================================
+      // REQUIRED DATA
+      // ========================================
+
+      if (
+        !userId ||
+        !email ||
+        !cartId
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Missing payment information"
+
+        });
+
+      }
+
+
+      // ========================================
+      // VALIDATE IDs
+      // ========================================
+
+      if (
+        !ObjectId.isValid(userId)
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Invalid user ID"
+
+        });
+
+      }
+
+
+      if (
+        !ObjectId.isValid(cartId)
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Invalid cart ID"
+
+        });
+
+      }
+
+
+      const database =
+        await connectDB();
+
+      const cartCollection =
+        database.collection(
+          "cart"
+        );
+
+      const paymentCollection =
+        database.collection(
+          "payments"
+        );
+
+
+      // ========================================
+      // FIND CART ITEM
+      // ========================================
+
+      const cartItem =
+        await cartCollection.findOne({
+
+          _id:
+            new ObjectId(cartId),
+
+          userId:
+            new ObjectId(userId)
+
+        });
+
+
+      if (!cartItem) {
+
+        return res.status(404).json({
+
+          message:
+            "Cart item not found"
+
+        });
+
+      }
+
+
+      // ========================================
+      // CALCULATE PRICE ON SERVER
+      // ========================================
+
+      const itemQuantity =
+        Number(quantity) ||
+        Number(cartItem.quantity) ||
+        1;
+
+      const itemPrice =
+        Number(cartItem.price);
+
+
+      if (
+        !Number.isFinite(
+          itemPrice
+        ) ||
+        itemPrice < 0
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Invalid product price"
+
+        });
+
+      }
+
+
+      if (
+        !Number.isInteger(
+          itemQuantity
+        ) ||
+        itemQuantity < 1
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Invalid quantity"
+
+        });
+
+      }
+
+
+      const amount =
+        itemPrice *
+        itemQuantity;
+
+
+      // ========================================
+      // CREATE PAYMENT RECORD
+      // ========================================
+
+      const payment = {
+
+        userId:
+          new ObjectId(userId),
+
+        email:
+          email
+            .trim()
+            .toLowerCase(),
+
+        cartId:
+          new ObjectId(cartId),
+
+        productName:
+          productName ||
+          cartItem.name,
+
+        quantity:
+          itemQuantity,
+
+        amount:
+          amount,
+
+        status:
+          "pending",
+
+        createdAt:
+          new Date(),
+
+        updatedAt:
+          new Date()
+
+      };
+
+
+      const result =
+        await paymentCollection.insertOne(
+          payment
+        );
+
+
+      // ========================================
+      // RESPONSE
+      // ========================================
+
+      res.status(201).json({
+
+        message:
+          "Payment record created",
+
+        payment: {
+
+          id:
+            result.insertedId.toString(),
+
+          amount:
+            amount,
+
+          email:
+            payment.email,
+
+          status:
+            "pending"
+
+        }
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "CREATE PAYMENT ERROR:",
+        error
+      );
+
+      res.status(500).json({
+
+        message:
+          "Failed to create payment"
+
+      });
+
+    }
+
+  }
+);
+
+
+// ========================================
+// VERIFY PAYSTACK PAYMENT
+// ========================================
+
+app.post(
+  "/payment/verify",
+  async (req, res) => {
+
+    try {
+
+      const {
+        reference,
+        paymentId
+      } = req.body;
+
+
+      if (
+        !reference ||
+        !paymentId
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Payment reference and payment ID are required"
+
+        });
+
+      }
+
+
+      if (
+        !ObjectId.isValid(
+          paymentId
+        )
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Invalid payment ID"
+
+        });
+
+      }
+
+
+      if (
+        !process.env.PAYSTACK_SECRET_KEY
+      ) {
+
+        return res.status(500).json({
+
+          message:
+            "Paystack secret key is missing"
+
+        });
+
+      }
+
+
+      // ========================================
+      // VERIFY WITH PAYSTACK
+      // ========================================
+
+      const paystackResponse =
+        await fetch(
+
+          `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+
+          {
+
+            method:
+              "GET",
+
+            headers: {
+
+              Authorization:
+                `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
+
+              "Content-Type":
+                "application/json"
+
+            }
+
+          }
+
+        );
+
+
+      const paystackData =
+        await paystackResponse.json();
+
+
+      if (
+        !paystackResponse.ok ||
+        !paystackData.status
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            paystackData.message ||
+            "Payment verification failed"
+
+        });
+
+      }
+
+
+      const transaction =
+        paystackData.data;
+
+
+      if (
+        transaction.status !==
+        "success"
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Payment was not successful"
+
+        });
+
+      }
+
+
+      const database =
+        await connectDB();
+
+      const paymentCollection =
+        database.collection(
+          "payments"
+        );
+
+
+      // ========================================
+      // FIND PAYMENT
+      // ========================================
+
+      const payment =
+        await paymentCollection.findOne({
+
+          _id:
+            new ObjectId(
+              paymentId
+            )
+
+        });
+
+
+      if (!payment) {
+
+        return res.status(404).json({
+
+          message:
+            "Payment record not found"
+
+        });
+
+      }
+
+
+      // ========================================
+      // CHECK PAYMENT AMOUNT
+      // ========================================
+
+      const expectedAmount =
+        Number(payment.amount) *
+        100;
+
+
+      const paidAmount =
+        Number(transaction.amount);
+
+
+      if (
+        paidAmount !==
+        expectedAmount
+      ) {
+
+        return res.status(400).json({
+
+          message:
+            "Payment amount does not match"
+
+        });
+
+      }
+
+
+      // ========================================
+      // UPDATE PAYMENT
+      // ========================================
+
+      await paymentCollection.updateOne(
+
+        {
+          _id:
+            new ObjectId(
+              paymentId
+            )
+
+        },
+
+        {
+
+          $set: {
+
+            status:
+              "paid",
+
+            reference:
+              reference,
+
+            paystackTransactionId:
+              transaction.id,
+
+            paidAt:
+              new Date(),
+
+            updatedAt:
+              new Date()
+
+          }
+
+        }
+
+      );
+
+
+      // ========================================
+      // DELETE PAID CART ITEM
+      // ========================================
+
+      const cartCollection =
+        database.collection(
+          "cart"
+        );
+
+
+      await cartCollection.deleteOne({
+
+        _id:
+          payment.cartId,
+
+        userId:
+          payment.userId
+
+      });
+
+
+      // ========================================
+      // RESPONSE
+      // ========================================
+
+      res.status(200).json({
+
+        message:
+          "Payment verified successfully",
+
+        payment: {
+
+          id:
+            paymentId,
+
+          reference:
+            reference,
+
+          amount:
+            payment.amount,
+
+          status:
+            "paid"
+
+        }
+
+      });
+
+    } catch (error) {
+
+      console.error(
+        "VERIFY PAYMENT ERROR:",
+        error
+      );
+
+      res.status(500).json({
+
+        message:
+          "Failed to verify payment"
+
+      });
+
+    }
+
+  }
+);
+
+
+// ========================================
+// SERVER
+// ========================================
+
+const PORT =
+  process.env.PORT ||
+  5000;
+
+
+// ========================================
+// LOCAL DEVELOPMENT
+// ========================================
+
+if (
+  process.env.NODE_ENV !==
+  "production"
+) {
+
+  app.listen(
+    PORT,
+    () => {
+
+      console.log(
+        `Server running at http://localhost:${PORT}`
+      );
+
+    }
+  );
+
+}
+
+
+// ========================================
+// INITIALIZE ADMIN
+// ========================================
+
+createAdmin();
+
+
+// ========================================
+// EXPORT FOR VERCEL
+// ========================================
+
 export default app;

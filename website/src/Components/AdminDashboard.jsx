@@ -143,7 +143,7 @@ const getDashboardData = async (currentUser) => {
     try {
 
       const response = await fetch(
-        "http://localhost:5000/admin/products",
+"https://davira-backend-api.vercel.app/admin/products",
         {
           method: "POST",
 
@@ -219,7 +219,7 @@ const getDashboardData = async (currentUser) => {
 
       const response = await fetch(
 
-        `http://localhost:5000/admin/products/${editingProduct._id}`,
+`https://davira-backend-api.vercel.app/admin/products/${editingProduct._id}`,
 
         {
 
@@ -282,7 +282,7 @@ const getDashboardData = async (currentUser) => {
 
       const response = await fetch(
 
-        `http://localhost:5000/admin/products/${id}`,
+        `https://davira-backend-api.vercel.app/admin/products/${id}`,
 
         {
 

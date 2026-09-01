@@ -31,9 +31,9 @@ const Reviews = () => {
   const getReviews = async () => {
   try {
 
-    const response = await fetch(
-      `http://localhost:5000/reviews/${productId}`
-    );
+const response = await fetch(
+  `https://davira-backend-api.vercel.app/reviews/${productId}`
+);
 
     const data = await response.json();
 
@@ -75,9 +75,7 @@ const Reviews = () => {
 
     try {
 
-      const response = await fetch(
-        "http://localhost:5000/reviews",
-        {
+      const response = await fetch("https://davira-backend-api.vercel.app/reviews", {
           method: "POST",
 
           headers: {
@@ -132,11 +130,11 @@ const Reviews = () => {
     try {
 
       const response = await fetch(
-        `http://localhost:5000/reviews/${id}`,
-        {
-          method: "DELETE"
-        }
-      );
+  `https://davira-backend-api.vercel.app/reviews/${id}`,
+  {
+    method: "DELETE"
+  }
+);
 
       const data = await response.json();
 
