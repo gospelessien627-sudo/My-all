@@ -15,41 +15,18 @@ const app = express();
 // ========================================
 // CORS
 // ========================================
-const allowedOrigins = [
-  // "http://localhost:5173",
-  "https://my-all-neon.vercel.app",
-];
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    if (!origin) {
-      return callback(null, true);
-    }
-
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    return callback(new Error("Not allowed by CORS"));
-  },
-
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-
-  allowedHeaders: [
-    "Content-Type",
-    "user-id",
-    "Authorization",
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://my-all-3397.vercel.app",
+    "https://my-all-3397-r5dhng7e0-gospels-projects-8582e4e3.vercel.app"
   ],
-
-  credentials: false,
-};
-
-app.use(cors(corsOptions));
-
-app.options(/.*/, cors(corsOptions));
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "user-id"],
+  credentials: false
+}));
 
 app.use(express.json());
-
 // app.use(express.json());
 // app.use(express.json());
 // Handle browser preflight requests
