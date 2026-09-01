@@ -12,6 +12,10 @@ const app = express();
 // ========================================
 // CORS
 // ========================================
+// ========================================
+// CORS
+// ========================================
+
 const allowedOrigins = [
   "http://localhost:5173",
   "https://my-all-neon.vercel.app",
@@ -19,12 +23,32 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+      // Allow requests with no Origin
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"));
+    },
+
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "user-id", "Authorization"],
+
+    allowedHeaders: [
+      "Content-Type",
+      "user-id",
+      "Authorization",
+    ],
+
+    credentials: false,
   })
 );
 
+// app.use(express.json());
 app.use(express.json());
 // Handle browser preflight requests
 
