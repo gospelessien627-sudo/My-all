@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import "./Login.css";
 
 const Login = () => {
-
   const navigate = useNavigate();
 
   const [isRegister, setIsRegister] = useState(false);
@@ -21,7 +20,6 @@ const Login = () => {
   // ========================================
 
   const handleSubmit = async (e) => {
-
     e.preventDefault();
 
     setError("");
@@ -29,13 +27,11 @@ const Login = () => {
     setLoading(true);
 
     try {
-
       // ========================================
       // REGISTER
       // ========================================
 
       if (isRegister) {
-
         if (!name || !email || !password) {
           setError("Please fill in all fields");
           setLoading(false);
@@ -43,28 +39,28 @@ const Login = () => {
         }
 
         const response = await fetch(
-          // "https://davira-backend-api.vercel.app/register",
-                   // "http://localhost:5000/register",
-          "",
+          "https://davira-backend.onrender.com/register",
           {
             method: "POST",
 
             headers: {
-              "Content-Type": "application/json"
+              "Content-Type": "application/json",
             },
 
             body: JSON.stringify({
               name,
               email,
-              password
-            })
+              password,
+            }),
           }
         );
 
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.message);
+          throw new Error(
+            data.message || "Registration failed"
+          );
         }
 
         setSuccess(
@@ -78,7 +74,6 @@ const Login = () => {
 
         // Switch to login
         setIsRegister(false);
-
       }
 
       // ========================================
@@ -86,7 +81,6 @@ const Login = () => {
       // ========================================
 
       else {
-
         if (!email || !password) {
           setError(
             "Please enter your email and password"
@@ -97,27 +91,27 @@ const Login = () => {
         }
 
         const response = await fetch(
-          // "https://davira-backend-api.vercel.app/login",
-          "http://localhost:5000/login",
-          
+          "https://davira-backend.onrender.com/login",
           {
             method: "POST",
 
             headers: {
-              "Content-Type": "application/json"
+              "Content-Type": "application/json",
             },
 
             body: JSON.stringify({
               email,
-              password
-            })
+              password,
+            }),
           }
         );
 
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.message);
+          throw new Error(
+            data.message || "Login failed"
+          );
         }
 
         // ========================================
@@ -139,29 +133,22 @@ const Login = () => {
           navigate("/");
         }
       }
-
     } catch (error) {
-
       console.error(error);
 
       setError(
         error.message || "Something went wrong"
       );
-
     } finally {
-
       setLoading(false);
-
     }
   };
-
 
   // ========================================
   // SWITCH LOGIN / REGISTER
   // ========================================
 
   const switchMode = () => {
-
     setIsRegister(!isRegister);
 
     setError("");
@@ -172,11 +159,8 @@ const Login = () => {
     setPassword("");
   };
 
-
   return (
-
     <div className="auth-page">
-
       <div className="auth-card">
 
         <h1>
@@ -191,13 +175,11 @@ const Login = () => {
             : "Login to your Davira account"}
         </p>
 
-
         {error && (
           <div className="error-message">
             {error}
           </div>
         )}
-
 
         {success && (
           <div className="success-message">
@@ -205,11 +187,9 @@ const Login = () => {
           </div>
         )}
 
-
         <form onSubmit={handleSubmit}>
 
           {isRegister && (
-
             <div className="input-group">
 
               <label>
@@ -226,9 +206,7 @@ const Login = () => {
               />
 
             </div>
-
           )}
-
 
           <div className="input-group">
 
@@ -247,7 +225,6 @@ const Login = () => {
 
           </div>
 
-
           <div className="input-group">
 
             <label>
@@ -265,23 +242,19 @@ const Login = () => {
 
           </div>
 
-
           <button
             type="submit"
             className="auth-button"
             disabled={loading}
           >
-
             {loading
               ? "Please wait..."
               : isRegister
-                ? "Register"
-                : "Login"}
-
+              ? "Register"
+              : "Login"}
           </button>
 
         </form>
-
 
         <div className="switch-auth">
 
@@ -300,7 +273,6 @@ const Login = () => {
 
         </div>
 
-
         <button
           className="back-home"
           onClick={() => navigate("/")}
@@ -309,7 +281,6 @@ const Login = () => {
         </button>
 
       </div>
-
     </div>
   );
 };

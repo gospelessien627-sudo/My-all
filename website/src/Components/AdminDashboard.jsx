@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import "./AdminDashboard.css";
 
 const AdminDashboard = () => {
-
   const navigate = useNavigate();
 
   const [products, setProducts] = useState([]);
@@ -12,7 +11,7 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalUsers: 0,
-    totalCartItems: 0
+    totalCartItems: 0,
   });
 
   const [loading, setLoading] = useState(true);
@@ -23,118 +22,144 @@ const AdminDashboard = () => {
     useState(null);
 
   const [formData, setFormData] = useState({
-
     name: "",
     brand: "",
     price: "",
     sizes: "",
-    image: ""
-
+    image: "",
   });
 
-  const user =
-    JSON.parse(
-      localStorage.getItem("user")
-    );
+  const user = JSON.parse(
+    localStorage.getItem("user")
+  );
 
   // ========================================
   // CHECK ADMIN
   // ========================================
 
-useEffect(() => {
-  const storedUser = localStorage.getItem("user");
+  useEffect(() => {
+    const storedUser =
+      localStorage.getItem("user");
 
-  if (!storedUser) {
-    navigate("/login");
-    return;
-  }
+    if (!storedUser) {
+      navigate("/login");
+      return;
+    }
 
-  const currentUser = JSON.parse(storedUser);
+    const currentUser =
+      JSON.parse(storedUser);
 
-  if (currentUser.role !== "admin") {
-    navigate("/");
-    return;
-  }
+    if (currentUser.role !== "admin") {
+      navigate("/");
+      return;
+    }
 
-  getDashboardData(currentUser);
-
-}, []);
+    getDashboardData(currentUser);
+  }, []);
 
   // ========================================
   // GET DASHBOARD DATA
   // ========================================
 
-const getDashboardData = async (currentUser) => {
-  try {
-    setLoading(true);
+  const getDashboardData = async (
+    currentUser = user
+  ) => {
+    try {
+      setLoading(true);
 
-    const headers = {
-      "user-id": currentUser.id
-    };
+      if (!currentUser || !currentUser.id) {
+        navigate("/login");
+        return;
+      }
 
-    const [
-      productsResponse,
-      usersResponse,
-      statsResponse
-    ] = await Promise.all([
-      fetch(
-        // "https://davira-backend-api.vercel.app/admin/products",
-                "http://localhost:5000/admin/products",
-        { headers }
-      ),
+      const headers = {
+        "user-id": currentUser.id,
+      };
 
-      fetch(
-        // "https://davira-backend-api.vercel.app/admin/users",
-        "http://localhost:5000/admin/users",
-        
-        { headers }
-      ),
+      const [
+        productsResponse,
+        usersResponse,
+        statsResponse,
+      ] = await Promise.all([
+        fetch(
+          "https://davira-backend.onrender.com/admin/products",
+          {
+            headers,
+          }
+        ),
 
-      fetch(
-        // "https://davira-backend-api.vercel.app/admin/stats",
-        "http://localhost:5000/admin/stats",
-        "",
-        { headers }
-      )
-    ]);
+        fetch(
+          "https://davira-backend.onrender.com/admin/users",
+          {
+            headers,
+          }
+        ),
 
-    const productsData = await productsResponse.json();
-    const usersData = await usersResponse.json();
-    const statsData = await statsResponse.json();
+        fetch(
+          "https://davira-backend.onrender.com/admin/stats",
+          {
+            headers,
+          }
+        ),
+      ]);
 
-    if (!productsResponse.ok) {
-      throw new Error(
-        productsData.message || "Failed to fetch products"
+      const productsData =
+        await productsResponse.json();
+
+      const usersData =
+        await usersResponse.json();
+
+      const statsData =
+        await statsResponse.json();
+
+      if (!productsResponse.ok) {
+        throw new Error(
+          productsData.message ||
+            "Failed to fetch products"
+        );
+      }
+
+      if (!usersResponse.ok) {
+        throw new Error(
+          usersData.message ||
+            "Failed to fetch users"
+        );
+      }
+
+      if (!statsResponse.ok) {
+        throw new Error(
+          statsData.message ||
+            "Failed to fetch statistics"
+        );
+      }
+
+      setProducts(productsData);
+      setUsers(usersData);
+      setStats(statsData);
+    } catch (error) {
+      console.error(
+        "Dashboard error:",
+        error
       );
+    } finally {
+      setLoading(false);
     }
-
-    setProducts(productsData);
-    setUsers(usersData);
-    setStats(statsData);
-
-  } catch (error) {
-    console.error("Dashboard error:", error);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // ========================================
   // FORM CHANGE
   // ========================================
 
   const handleChange = (e) => {
-
     const {
       name,
-      value
+      value,
     } = e.target;
 
     setFormData((previous) => ({
       ...previous,
-      [name]: value
+      [name]: value,
     }));
-
   };
 
   // ========================================
@@ -142,24 +167,21 @@ const getDashboardData = async (currentUser) => {
   // ========================================
 
   const addProduct = async (e) => {
-
     e.preventDefault();
 
     try {
-
       const response = await fetch(
-// "https://davira-backend-api.vercel.app/admin/products",
-"http://localhost:5000/admin/products",
-
+        "https://davira-backend.onrender.com/admin/products",
         {
           method: "POST",
 
           headers: {
-            "Content-Type": "application/json",
-            "user-id": user.id
+            "Content-Type":
+              "application/json",
+            "user-id": user.id,
           },
 
-          body: JSON.stringify(formData)
+          body: JSON.stringify(formData),
         }
       );
 
@@ -168,7 +190,8 @@ const getDashboardData = async (currentUser) => {
 
       if (!response.ok) {
         throw new Error(
-          data.message
+          data.message ||
+            "Failed to add product"
         );
       }
 
@@ -178,14 +201,18 @@ const getDashboardData = async (currentUser) => {
 
       resetForm();
 
-      getDashboardData();
-
+      await getDashboardData(user);
     } catch (error) {
+      console.error(
+        "Add product error:",
+        error
+      );
 
-      alert(error.message);
-
+      alert(
+        error.message ||
+          "Failed to add product"
+      );
     }
-
   };
 
   // ========================================
@@ -193,25 +220,17 @@ const getDashboardData = async (currentUser) => {
   // ========================================
 
   const startEdit = (product) => {
-
     setEditingProduct(product);
 
     setFormData({
-
       name: product.name,
-
       brand: product.brand,
-
       price: product.price,
-
       sizes: product.sizes,
-
-      image: product.image
-
+      image: product.image,
     });
 
     setShowForm(true);
-
   };
 
   // ========================================
@@ -219,41 +238,32 @@ const getDashboardData = async (currentUser) => {
   // ========================================
 
   const updateProduct = async (e) => {
-
     e.preventDefault();
 
     try {
-
       const response = await fetch(
-
-// `https://davira-backend-api.vercel.app/admin/products/${editingProduct._id}`,
-`http://localhost:5000/admin/products/${editingProduct._id}`,
-"",
-
+        `https://davira-backend.onrender.com/admin/products/${editingProduct._id}`,
         {
-
           method: "PUT",
 
           headers: {
-            "Content-Type": "application/json",
-            "user-id": user.id
+            "Content-Type":
+              "application/json",
+            "user-id": user.id,
           },
 
-          body: JSON.stringify(formData)
-
+          body: JSON.stringify(formData),
         }
-
       );
 
       const data =
         await response.json();
 
       if (!response.ok) {
-
         throw new Error(
-          data.message
+          data.message ||
+            "Failed to update product"
         );
-
       }
 
       alert(
@@ -262,14 +272,18 @@ const getDashboardData = async (currentUser) => {
 
       resetForm();
 
-      getDashboardData();
-
+      await getDashboardData(user);
     } catch (error) {
+      console.error(
+        "Update product error:",
+        error
+      );
 
-      alert(error.message);
-
+      alert(
+        error.message ||
+          "Failed to update product"
+      );
     }
-
   };
 
   // ========================================
@@ -277,7 +291,6 @@ const getDashboardData = async (currentUser) => {
   // ========================================
 
   const deleteProduct = async (id) => {
-
     const confirmDelete =
       window.confirm(
         "Are you sure you want to delete this product?"
@@ -288,56 +301,54 @@ const getDashboardData = async (currentUser) => {
     }
 
     try {
-
       const response = await fetch(
-
-        // `https://davira-backend-api.vercel.app/admin/products/${id}`,
-        `http://localhost:5000/admin/products/${id}`,
-        "",
-
+        `https://davira-backend.onrender.com/admin/products/${id}`,
         {
-
           method: "DELETE",
 
           headers: {
-            "user-id": user.id
-          }
-
+            "user-id": user.id,
+          },
         }
-
       );
 
       const data =
         await response.json();
 
       if (!response.ok) {
-
         throw new Error(
-          data.message
+          data.message ||
+            "Failed to delete product"
         );
-
       }
 
       setProducts(
-        previousProducts =>
+        (previousProducts) =>
           previousProducts.filter(
-            product =>
+            (product) =>
               product._id !== id
           )
       );
 
-      setStats(previous => ({
+      setStats((previous) => ({
         ...previous,
+
         totalProducts:
-          previous.totalProducts - 1
+          previous.totalProducts > 0
+            ? previous.totalProducts - 1
+            : 0,
       }));
-
     } catch (error) {
+      console.error(
+        "Delete product error:",
+        error
+      );
 
-      alert(error.message);
-
+      alert(
+        error.message ||
+          "Failed to delete product"
+      );
     }
-
   };
 
   // ========================================
@@ -345,21 +356,17 @@ const getDashboardData = async (currentUser) => {
   // ========================================
 
   const resetForm = () => {
-
     setFormData({
-
       name: "",
       brand: "",
       price: "",
       sizes: "",
-      image: ""
-
+      image: "",
     });
 
     setEditingProduct(null);
 
     setShowForm(false);
-
   };
 
   // ========================================
@@ -367,11 +374,9 @@ const getDashboardData = async (currentUser) => {
   // ========================================
 
   const logout = () => {
-
     localStorage.removeItem("user");
 
     navigate("/login");
-
   };
 
   // ========================================
@@ -379,23 +384,20 @@ const getDashboardData = async (currentUser) => {
   // ========================================
 
   if (loading) {
-
     return (
-
       <div className="admin-loading">
-
         <h2>
           Loading Dashboard...
         </h2>
-
       </div>
-
     );
-
   }
 
-  return (
+  // ========================================
+  // DASHBOARD
+  // ========================================
 
+  return (
     <div className="admin-dashboard">
 
       {/* ================================= */}
@@ -412,9 +414,7 @@ const getDashboardData = async (currentUser) => {
           Admin Panel
         </p>
 
-        <button
-          className="active"
-        >
+        <button className="active">
           Dashboard
         </button>
 
@@ -443,7 +443,6 @@ const getDashboardData = async (currentUser) => {
 
       </aside>
 
-
       {/* ================================= */}
       {/* MAIN */}
       {/* ================================= */}
@@ -466,7 +465,6 @@ const getDashboardData = async (currentUser) => {
 
         </div>
 
-
         {/* ================================= */}
         {/* STATISTICS */}
         {/* ================================= */}
@@ -485,7 +483,6 @@ const getDashboardData = async (currentUser) => {
 
           </div>
 
-
           <div className="stat-card">
 
             <h3>
@@ -497,7 +494,6 @@ const getDashboardData = async (currentUser) => {
             </strong>
 
           </div>
-
 
           <div className="stat-card">
 
@@ -512,7 +508,6 @@ const getDashboardData = async (currentUser) => {
           </div>
 
         </div>
-
 
         {/* ================================= */}
         {/* PRODUCT FORM */}
@@ -601,7 +596,6 @@ const getDashboardData = async (currentUser) => {
 
         )}
 
-
         {/* ================================= */}
         {/* PRODUCTS */}
         {/* ================================= */}
@@ -624,7 +618,6 @@ const getDashboardData = async (currentUser) => {
 
           </div>
 
-
           <div className="admin-products">
 
             {products.length === 0 ? (
@@ -635,72 +628,73 @@ const getDashboardData = async (currentUser) => {
 
             ) : (
 
-              products.map((product) => (
+              products.map(
+                (product) => (
 
-                <div
-                  className="admin-product"
-                  key={product._id}
-                >
+                  <div
+                    className="admin-product"
+                    key={product._id}
+                  >
 
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                  />
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                    />
 
-                  <div className="product-info">
+                    <div className="product-info">
 
-                    <h3>
-                      {product.name}
-                    </h3>
+                      <h3>
+                        {product.name}
+                      </h3>
 
-                    <p>
-                      {product.brand}
-                    </p>
+                      <p>
+                        {product.brand}
+                      </p>
 
-                    <p>
-                      Size: {product.sizes}
-                    </p>
+                      <p>
+                        Size: {product.sizes}
+                      </p>
 
-                    <h4>
-                      ₦{product.price}
-                    </h4>
+                      <h4>
+                        ₦{product.price}
+                      </h4>
+
+                    </div>
+
+                    <div className="product-actions">
+
+                      <button
+                        onClick={() =>
+                          startEdit(product)
+                        }
+                        className="edit-btn"
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        onClick={() =>
+                          deleteProduct(
+                            product._id
+                          )
+                        }
+                        className="delete-btn"
+                      >
+                        Delete
+                      </button>
+
+                    </div>
 
                   </div>
 
-                  <div className="product-actions">
-
-                    <button
-                      onClick={() =>
-                        startEdit(product)
-                      }
-                      className="edit-btn"
-                    >
-                      Edit
-                    </button>
-
-                    <button
-                      onClick={() =>
-                        deleteProduct(
-                          product._id
-                        )
-                      }
-                      className="delete-btn"
-                    >
-                      Delete
-                    </button>
-
-                  </div>
-
-                </div>
-
-              ))
+                )
+              )
 
             )}
 
           </div>
 
         </section>
-
 
         {/* ================================= */}
         {/* USERS */}
@@ -730,31 +724,31 @@ const getDashboardData = async (currentUser) => {
 
             </div>
 
+            {users.map(
+              (person) => (
 
-            {users.map((person) => (
+                <div
+                  className="user-row"
+                  key={person._id}
+                >
 
-              <div
-                className="user-row"
-                key={person._id}
-              >
+                  <span>
+                    {person.name}
+                  </span>
 
-                <span>
-                  {person.name}
-                </span>
+                  <span>
+                    {person.email}
+                  </span>
 
-                <span>
-                  {person.email}
-                </span>
+                  <span>
+                    {person.role ||
+                      "user"}
+                  </span>
 
-                <span>
-                  {person.role || "user"}
-                </span>
+                </div>
 
-              </div>
-
-            ))}
-
-
+              )
+            )}
 
           </div>
 
@@ -763,7 +757,6 @@ const getDashboardData = async (currentUser) => {
       </main>
 
     </div>
-
   );
 };
 

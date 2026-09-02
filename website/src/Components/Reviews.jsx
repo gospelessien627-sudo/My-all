@@ -1,19 +1,15 @@
-import React, {  useState } from "react";
-import { useEffect } from "react";
-import { FaStar, FaTrash } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import { FaStar, FaTrash, FaArrowLeft } from "react-icons/fa";
 import "./Reviews.css";
-import { useParams } from "react-router-dom";
-import { useLocation } from "react-router-dom";
-import { useNavigate } from "react-router-dom";
-import { FaArrowLeft } from "react-icons/fa";
+import { useParams, useLocation, useNavigate } from "react-router-dom";
 
 const Reviews = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
 
+  const product = location.state?.product;
+  const { productId } = useParams();
 
-    const navigate = useNavigate();
-    const location = useLocation();
-    const product = location.state?.product;
-    const { productId } = useParams();
   const [reviews, setReviews] = useState([]);
 
   const [name, setName] = useState("");
@@ -22,51 +18,44 @@ const Reviews = () => {
 
   const [loading, setLoading] = useState(true);
 
-
-
   // ========================================
   // GET REVIEWS
   // ========================================
 
   const getReviews = async () => {
-  try {
+    try {
+      const response = await fetch(
+        `https://davira-backend.onrender.com/reviews/${productId}`
+      );
 
-const response = await fetch(
-  // `https://davira-backend-api.vercel.app/reviews/${productId}`
-    `http://localhost:5000/reviews/${productId}`,
-);
+      const data = await response.json();
 
-    const data = await response.json();
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to fetch reviews"
+        );
+      }
 
-    if (!response.ok) {
-      throw new Error(data.message);
+      setReviews(data);
+    } catch (error) {
+      console.error(
+        "Error fetching reviews:",
+        error
+      );
+    } finally {
+      setLoading(false);
     }
+  };
 
-    setReviews(data);
-
-  } catch (error) {
-
-    console.error("Error fetching reviews:", error);
-
-  } finally {
-
-    setLoading(false);
-
-  }
-};
-
-    useEffect(() => {
-  getReviews();
-}, [productId]);
-
-
+  useEffect(() => {
+    getReviews();
+  }, [productId]);
 
   // ========================================
   // ADD REVIEW
   // ========================================
 
   const submitReview = async (e) => {
-
     e.preventDefault();
 
     if (!name.trim() || !comment.trim()) {
@@ -75,77 +64,75 @@ const response = await fetch(
     }
 
     try {
-
       const response = await fetch(
-        // "https://davira-backend-api.vercel.app/reviews",
-                "http://localhost:5000/reviews",
+        "https://davira-backend.onrender.com/reviews",
         {
           method: "POST",
 
           headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
           },
 
           body: JSON.stringify({
-  productId: productId,
-  productName: product?.name || "Product",
-  name: name,
-  rating: rating,
-  comment: comment
-})
-
+            productId: productId,
+            productName: product?.name || "Product",
+            name: name,
+            rating: rating,
+            comment: comment,
+          }),
         }
       );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message);
+        throw new Error(
+          data.message || "Failed to submit review"
+        );
       }
 
       // Add new review to screen
       setReviews((previousReviews) => [
         data.review,
-        ...previousReviews
+        ...previousReviews,
       ]);
 
       // Clear form
       setName("");
       setRating(5);
       setComment("");
-
     } catch (error) {
-
       console.error(
         "Error submitting review:",
         error
       );
 
+      alert(
+        error.message ||
+          "Failed to submit review"
+      );
     }
   };
-
 
   // ========================================
   // DELETE REVIEW
   // ========================================
 
   const deleteReview = async (id) => {
-
     try {
-
       const response = await fetch(
-  // `https://davira-backend-api.vercel.app/reviews/${id}`,
-  `http://localhost:5000/reviews/${id}`,
-  "",
-  {
-    method: "DELETE"
-  }
-);
+        `https://davira-backend.onrender.com/reviews/${id}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message);
+        throw new Error(
+          data.message || "Failed to delete review"
+        );
       }
 
       setReviews((previousReviews) =>
@@ -153,17 +140,18 @@ const response = await fetch(
           (review) => review._id !== id
         )
       );
-
     } catch (error) {
-
       console.error(
         "Error deleting review:",
         error
       );
 
+      alert(
+        error.message ||
+          "Failed to delete review"
+      );
     }
   };
-
 
   // ========================================
   // AVERAGE RATING
@@ -180,24 +168,30 @@ const response = await fetch(
         ).toFixed(1)
       : "0.0";
 
+  // ========================================
+  // RETURN
+  // ========================================
 
   return (
-
     <div className="reviews-section">
 
-        <button
-  className="lod"
-  onClick={() => navigate("/")}
->
-    <FaArrowLeft className="arr"/>
-  Back Home
-</button>
+      {/* BACK HOME */}
+
+      <button
+        className="lod"
+        onClick={() => navigate("/")}
+      >
+        <FaArrowLeft className="arr" />
+        Back Home
+      </button>
+
       <h2>
         Customer Reviews
       </h2>
 
-
-      {/* AVERAGE RATING */}
+      {/* ========================================
+          AVERAGE RATING
+      ======================================== */}
 
       <div className="average-rating">
 
@@ -207,32 +201,36 @@ const response = await fetch(
 
         <div className="stars">
 
-          {[1, 2, 3, 4, 5].map((star) => (
-
-            <FaStar
-              key={star}
-              className={
-                star <= Math.round(
-                  Number(averageRating)
-                )
-                  ? "star active"
-                  : "star"
-              }
-            />
-
-          ))}
+          {[1, 2, 3, 4, 5].map(
+            (star) => (
+              <FaStar
+                key={star}
+                className={
+                  star <=
+                  Math.round(
+                    Number(averageRating)
+                  )
+                    ? "star active"
+                    : "star"
+                }
+              />
+            )
+          )}
 
         </div>
 
         <p>
           {reviews.length} review
-          {reviews.length !== 1 ? "s" : ""}
+          {reviews.length !== 1
+            ? "s"
+            : ""}
         </p>
 
       </div>
 
-
-      {/* REVIEW FORM */}
+      {/* ========================================
+          REVIEW FORM
+      ======================================== */}
 
       <div className="review-form">
 
@@ -251,29 +249,33 @@ const response = await fetch(
             }
           />
 
+          {/* RATING */}
 
           <div className="rating-input">
 
-            <p>Your rating:</p>
+            <p>
+              Your rating:
+            </p>
 
-            {[1, 2, 3, 4, 5].map((star) => (
-
-              <FaStar
-                key={star}
-                onClick={() =>
-                  setRating(star)
-                }
-                className={
-                  star <= rating
-                    ? "star selected"
-                    : "star"
-                }
-              />
-
-            ))}
+            {[1, 2, 3, 4, 5].map(
+              (star) => (
+                <FaStar
+                  key={star}
+                  onClick={() =>
+                    setRating(star)
+                  }
+                  className={
+                    star <= rating
+                      ? "star selected"
+                      : "star"
+                  }
+                />
+              )
+            )}
 
           </div>
 
+          {/* COMMENT */}
 
           <textarea
             placeholder="Write your review..."
@@ -283,7 +285,6 @@ const response = await fetch(
             }
           />
 
-
           <button type="submit">
             Submit Review
           </button>
@@ -292,8 +293,9 @@ const response = await fetch(
 
       </div>
 
-
-      {/* REVIEWS */}
+      {/* ========================================
+          REVIEWS
+      ======================================== */}
 
       <div className="review-list">
 
@@ -306,7 +308,8 @@ const response = await fetch(
         ) : reviews.length === 0 ? (
 
           <h3>
-            No reviews yet. Be the first to review!
+            No reviews yet. Be the first
+            to review!
           </h3>
 
         ) : (
@@ -318,6 +321,8 @@ const response = await fetch(
               key={review._id}
             >
 
+              {/* REVIEW HEADER */}
+
               <div className="review-header">
 
                 <h3>
@@ -328,16 +333,15 @@ const response = await fetch(
 
                   {[1, 2, 3, 4, 5].map(
                     (star) => (
-
                       <FaStar
                         key={star}
                         className={
-                          star <= review.rating
+                          star <=
+                          review.rating
                             ? "star active"
                             : "star"
                         }
                       />
-
                     )
                   )}
 
@@ -345,11 +349,13 @@ const response = await fetch(
 
               </div>
 
+              {/* COMMENT */}
 
               <p className="review-comment">
                 {review.comment}
               </p>
 
+              {/* DATE */}
 
               <small>
                 {new Date(
@@ -357,11 +363,14 @@ const response = await fetch(
                 ).toLocaleDateString()}
               </small>
 
+              {/* DELETE */}
 
               <button
                 className="delete-review"
                 onClick={() =>
-                  deleteReview(review._id)
+                  deleteReview(
+                    review._id
+                  )
                 }
               >
                 <FaTrash />
@@ -377,7 +386,6 @@ const response = await fetch(
       </div>
 
     </div>
-
   );
 };
 

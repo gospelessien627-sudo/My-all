@@ -5,7 +5,6 @@ import { FaArrowLeft } from "react-icons/fa";
 import PaystackPop from "@paystack/inline-js";
 
 const Cart = () => {
-
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -32,36 +31,32 @@ const Cart = () => {
       }
 
       const response = await fetch(
-        // "https://davira-backend-api.vercel.app/cart",
-        "http://localhost:5000/cart",
+        "https://davira-backend.onrender.com/cart",
         {
           headers: {
-            "user-id": user.id
-          }
+            "user-id": user.id,
+          },
         }
       );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Failed to fetch cart");
+        throw new Error(
+          data.message || "Failed to fetch cart"
+        );
       }
 
       console.log("CART PAGE:", data);
 
       setCart(data);
-
     } catch (error) {
-
       console.error(
         "Error fetching cart:",
         error
       );
-
     } finally {
-
       setLoading(false);
-
     }
   };
 
@@ -69,27 +64,25 @@ const Cart = () => {
     getCart();
   }, []);
 
-
   // ========================================
   // DELETE PRODUCT FROM CART
   // ========================================
 
   const deleteProduct = async (id) => {
-
     try {
-
       const response = await fetch(
-        // `https://davira-backend-api.vercel.app/cart/${id}`,
-        `http://localhost:5000/cart/${id}`,
+        `https://davira-backend.onrender.com/cart/${id}`,
         {
-          method: "DELETE"
+          method: "DELETE",
         }
       );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message);
+        throw new Error(
+          data.message || "Failed to delete product"
+        );
       }
 
       setCart((previousCart) =>
@@ -97,18 +90,13 @@ const Cart = () => {
           (item) => item._id !== id
         )
       );
-
     } catch (error) {
-
       console.error(
         "Error deleting cart product:",
         error
       );
-
     }
-
   };
-
 
   // ========================================
   // UPDATE CART QUANTITY
@@ -116,15 +104,15 @@ const Cart = () => {
 
   const updateCart = async (id, quantity) => {
     try {
-
       const response = await fetch(
-        // `https://davira-backend-api.vercel.app/cart/${id}`,
-        `http://localhost:5000/cart/${id}`,
+        `https://davira-backend.onrender.com/cart/${id}`,
         {
           method: "PUT",
+
           headers: {
             "Content-Type": "application/json",
           },
+
           body: JSON.stringify({
             quantity: quantity,
           }),
@@ -134,7 +122,9 @@ const Cart = () => {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message);
+        throw new Error(
+          data.message || "Failed to update cart"
+        );
       }
 
       setCart((previousCart) =>
@@ -147,24 +137,19 @@ const Cart = () => {
             : item
         )
       );
-
     } catch (error) {
-
       console.error(
         "Error updating cart:",
         error
       );
-
     }
   };
-
 
   // ========================================
   // INCREASE QUANTITY
   // ========================================
 
   const increaseQuantity = (id) => {
-
     const item = cart.find(
       (item) => item._id === id
     );
@@ -177,13 +162,11 @@ const Cart = () => {
     );
   };
 
-
   // ========================================
   // DECREASE QUANTITY
   // ========================================
 
   const decreaseQuantity = async (id) => {
-
     const item = cart.find(
       (item) => item._id === id
     );
@@ -201,19 +184,16 @@ const Cart = () => {
     );
   };
 
-
   // ========================================
   // PAY NOW
   // ========================================
 
   const handlePayNow = async (item) => {
-
     try {
-
-      const savedUser = localStorage.getItem("user");
+      const savedUser =
+        localStorage.getItem("user");
 
       if (!savedUser) {
-
         localStorage.setItem(
           "pendingPayment",
           JSON.stringify(item)
@@ -224,12 +204,9 @@ const Cart = () => {
         return;
       }
 
-
       const user = JSON.parse(savedUser);
 
-
       if (!user.id) {
-
         alert(
           "Your login session is invalid. Please login again."
         );
@@ -246,7 +223,6 @@ const Cart = () => {
         return;
       }
 
-
       // ========================================
       // CALCULATE TOTAL
       // ========================================
@@ -257,24 +233,20 @@ const Cart = () => {
       const totalAmount =
         Number(item.price) * quantity;
 
-
       // ========================================
       // CREATE PAYMENT RECORD
       // ========================================
 
       const response = await fetch(
-        // "https://davira-backend-api.vercel.app/payment",
-        "http://localhost:5000/payment",
-        "",
+        "https://davira-backend.onrender.com/payment",
         {
           method: "POST",
 
           headers: {
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
           },
 
           body: JSON.stringify({
-
             userId: user.id,
 
             email: user.email,
@@ -285,31 +257,24 @@ const Cart = () => {
 
             quantity: quantity,
 
-            amount: totalAmount
-
-          })
+            amount: totalAmount,
+          }),
         }
       );
 
-
       const data = await response.json();
 
-
       if (!response.ok) {
-
         throw new Error(
           data.message ||
-          "Failed to create payment"
+            "Failed to create payment"
         );
-
       }
-
 
       console.log(
         "Payment record created:",
         data
       );
-
 
       // ========================================
       // OPEN PAYSTACK
@@ -318,7 +283,6 @@ const Cart = () => {
       const paystack = new PaystackPop();
 
       paystack.newTransaction({
-
         key:
           "pk_test_7bf6c0d1ad8f52aa0f20c1558bc850e7aa055092",
 
@@ -326,37 +290,30 @@ const Cart = () => {
 
         amount: totalAmount * 100,
 
-
         // ========================================
         // PAYMENT SUCCESS
         // ========================================
 
         onSuccess: async (transaction) => {
-
           console.log(
             "Payment successful:",
             transaction
           );
 
-          alert(
-            "Payment successful!"
-          );
+          alert("Payment successful!");
 
           await deleteProduct(item._id);
 
           localStorage.removeItem(
             "pendingPayment"
           );
-
         },
-
 
         // ========================================
         // PAYMENT CANCELLED
         // ========================================
 
         onCancel: () => {
-
           console.log(
             "Payment cancelled"
           );
@@ -364,14 +321,9 @@ const Cart = () => {
           alert(
             "Payment cancelled."
           );
-
-        }
-
+        },
       });
-
-
     } catch (error) {
-
       console.error(
         "Payment error:",
         error
@@ -379,13 +331,10 @@ const Cart = () => {
 
       alert(
         error.message ||
-        "Something went wrong with payment"
+          "Something went wrong with payment"
       );
-
     }
-
   };
-
 
   // ========================================
   // CALCULATE TOTAL CART PRICE
@@ -393,33 +342,37 @@ const Cart = () => {
 
   const totalPrice = cart.reduce(
     (total, item) => {
-
       const price =
         Number(item.price) || 0;
 
       const quantity =
         Number(item.quantity) || 1;
 
-      return total + (price * quantity);
-
+      return (
+        total +
+        price * quantity
+      );
     },
     0
   );
 
+  // ========================================
+  // LOADING
+  // ========================================
 
   if (loading) {
-
     return (
       <div className="yiu">
         <h2>Loading cart...</h2>
       </div>
     );
-
   }
 
+  // ========================================
+  // CART PAGE
+  // ========================================
 
   return (
-
     <div className="cart-page">
 
       <button
@@ -430,22 +383,15 @@ const Cart = () => {
         Continue shopping
       </button>
 
-
       <h1>Your Cart</h1>
 
-
       {cart.length === 0 ? (
-
         <h2>
           Your cart is empty
         </h2>
-
       ) : (
-
         <>
-
           {cart.map((item) => (
-
             <div
               className="cart-item"
               key={item._id}
@@ -456,12 +402,13 @@ const Cart = () => {
                 alt={item.name}
               />
 
-
               <div className="quantity-controls">
 
                 <button
                   onClick={() =>
-                    decreaseQuantity(item._id)
+                    decreaseQuantity(
+                      item._id
+                    )
                   }
                 >
                   -
@@ -473,14 +420,15 @@ const Cart = () => {
 
                 <button
                   onClick={() =>
-                    increaseQuantity(item._id)
+                    increaseQuantity(
+                      item._id
+                    )
                   }
                 >
                   +
                 </button>
 
               </div>
-
 
               <div className="cart-details">
 
@@ -500,11 +448,12 @@ const Cart = () => {
                   ₦{item.price}
                 </h3>
 
-
                 <button
                   className="proe"
                   onClick={() =>
-                    deleteProduct(item._id)
+                    deleteProduct(
+                      item._id
+                    )
                   }
                 >
                   Delete
@@ -513,34 +462,29 @@ const Cart = () => {
               </div>
 
             </div>
-
           ))}
-
         </>
-
       )}
-
 
       <div className="blt">
 
         <h3>
-          Price: ₦{totalPrice.toLocaleString()}
+          Price: ₦
+          {totalPrice.toLocaleString()}
         </h3>
 
         <button
           className="weq"
           onClick={() => {
-
             if (cart.length === 0) {
-
-              alert("Your cart is empty");
+              alert(
+                "Your cart is empty"
+              );
 
               return;
-
             }
 
             handlePayNow(cart);
-
           }}
         >
           Pay Now
@@ -549,9 +493,7 @@ const Cart = () => {
       </div>
 
     </div>
-
   );
-
 };
 
 export default Cart;
