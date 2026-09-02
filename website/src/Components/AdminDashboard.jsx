@@ -78,17 +78,22 @@ const getDashboardData = async (currentUser) => {
       statsResponse
     ] = await Promise.all([
       fetch(
-        "https://davira-backend-api.vercel.app/admin/products",
+        // "https://davira-backend-api.vercel.app/admin/products",
+                "http://localhost:5000/admin/products",
         { headers }
       ),
 
       fetch(
-        "https://davira-backend-api.vercel.app/admin/users",
+        // "https://davira-backend-api.vercel.app/admin/users",
+        "http://localhost:5000/admin/users",
+        
         { headers }
       ),
 
       fetch(
-        "https://davira-backend-api.vercel.app/admin/stats",
+        // "https://davira-backend-api.vercel.app/admin/stats",
+        "http://localhost:5000/admin/stats",
+        "",
         { headers }
       )
     ]);
@@ -143,7 +148,9 @@ const getDashboardData = async (currentUser) => {
     try {
 
       const response = await fetch(
-"https://davira-backend-api.vercel.app/admin/products",
+// "https://davira-backend-api.vercel.app/admin/products",
+"http://localhost:5000/admin/products",
+
         {
           method: "POST",
 
@@ -219,7 +226,9 @@ const getDashboardData = async (currentUser) => {
 
       const response = await fetch(
 
-`https://davira-backend-api.vercel.app/admin/products/${editingProduct._id}`,
+// `https://davira-backend-api.vercel.app/admin/products/${editingProduct._id}`,
+`http://localhost:5000/admin/products/${editingProduct._id}`,
+"",
 
         {
 
@@ -282,7 +291,9 @@ const getDashboardData = async (currentUser) => {
 
       const response = await fetch(
 
-        `https://davira-backend-api.vercel.app/admin/products/${id}`,
+        // `https://davira-backend-api.vercel.app/admin/products/${id}`,
+        `http://localhost:5000/admin/products/${id}`,
+        "",
 
         {
 

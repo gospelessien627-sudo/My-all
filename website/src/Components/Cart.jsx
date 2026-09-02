@@ -32,7 +32,8 @@ const Cart = () => {
       }
 
       const response = await fetch(
-        "https://davira-backend-api.vercel.app/cart",
+        // "https://davira-backend-api.vercel.app/cart",
+        "http://localhost:5000/cart",
         {
           headers: {
             "user-id": user.id
@@ -78,7 +79,8 @@ const Cart = () => {
     try {
 
       const response = await fetch(
-        `https://davira-backend-api.vercel.app/cart/${id}`,
+        // `https://davira-backend-api.vercel.app/cart/${id}`,
+        `http://localhost:5000/cart/${id}`,
         {
           method: "DELETE"
         }
@@ -116,7 +118,8 @@ const Cart = () => {
     try {
 
       const response = await fetch(
-        `https://davira-backend-api.vercel.app/cart/${id}`,
+        // `https://davira-backend-api.vercel.app/cart/${id}`,
+        `http://localhost:5000/cart/${id}`,
         {
           method: "PUT",
           headers: {
@@ -260,7 +263,9 @@ const Cart = () => {
       // ========================================
 
       const response = await fetch(
-        "https://davira-backend-api.vercel.app/payment",
+        // "https://davira-backend-api.vercel.app/payment",
+        "http://localhost:5000/payment",
+        "",
         {
           method: "POST",
 

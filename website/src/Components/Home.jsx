@@ -66,7 +66,8 @@ const Home = () => {
     try {
 
       const response = await fetch(
-        "https://davira-backend-api.vercel.app/newsletter",
+        // "https://davira-backend-api.vercel.app/newsletter"
+        "http://localhost:5000/newsletter",
         {
           method: "POST",
 
@@ -117,7 +118,8 @@ const Home = () => {
       try {
 
         const response = await fetch(
-          "https://davira-backend-api.vercel.app/cart",
+          // "https://davira-backend-api.vercel.app/cart",
+            "http://localhost:5000/cart",
           {
             headers: {
               "user-id": storedUser?.id
@@ -179,7 +181,8 @@ const Home = () => {
 
 
   const response = await fetch(
-  "https://davira-backend-api.vercel.app/cart",
+  // "https://davira-backend-api.vercel.app/cart"
+  "http://localhost:5000/cart",
   {
     method: "POST",
 
@@ -226,7 +229,8 @@ const Home = () => {
       // ========================================
 
       const response2 = await fetch(
-        "https://davira-backend-api.vercel.app/cart",
+        // "https://davira-backend-api.vercel.app/cart",
+        "http://localhost:5000/cart",
         {
           headers: {
             "user-id": storedUser.id

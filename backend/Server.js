@@ -1,2247 +1,1552 @@
-import dns from "node:dns/promises";
-import express from "express";
-import cors from "cors";
-import bcrypt from "bcryptjs";
-import { MongoClient, ObjectId } from "mongodb";
-import "dotenv/config";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import "./Home.css";
 
-dns.setServers(["1.1.1.1", "8.8.8.8"]);
+import { FaSearch } from "react-icons/fa";
+import { FaShoppingCart } from "react-icons/fa";
+import { product } from "./File";
+import img23 from "../assets/img23.jpg";
 
-const app = express();
-
-// ========================================
-// CORS
-// ========================================
-// ========================================
-// CORS
-// ========================================
-// ========================================
-// CORS
-// ========================================
-
-// app.use(cors({
-//   origin: "http://localhost:5173",
-//   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-//   allowedHeaders: ["Content-Type", "user-id"]
-// }));
-
-
-app.use(cors({
-  origin: [
-    "http://localhost:5173",
-    "https://my-all-3397.vercel.app"
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "user-id"]
-}));
-app.use(express.json());
-// app.use(express.json());
-// app.use(express.json());
-// Handle browser preflight requests
+import {
+  FaTshirt,
+  FaHome,
+  FaTag,
+  FaUser,
+  FaThLarge,
+  FaShoePrints,
+  FaHatCowboy,
+  FaShoppingBag,
+  FaGlasses,
+  FaCircle,
+  FaClock,
+  FaSocks,
+  FaMotorcycle,
+  FaLock,
+  FaHeadset,
+  FaUndo,
+  FaFacebook,
+  FaInstagram,
+  FaTwitter,
+  FaTiktok,
+  FaShieldAlt,
+  FaCcVisa,
+  FaCcMastercard,
+  FaCcPaypal
+} from "react-icons/fa";
 
 
 // ========================================
-// JSON
+// LIVE BACKEND URL
 // ========================================
 
+const API_URL = "https://davira-backend.onrender.com";
 
 
+const Home = () => {
 
-// ========================================
-// MONGODB
-// ========================================
+  const [cart, setCart] = useState([]);
+  const navigate = useNavigate();
 
-const client = new MongoClient(
-  process.env.MONGODB_URI
-);
+  const storedUser = JSON.parse(
+    localStorage.getItem("user")
+  );
 
-let db;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [selectedCategory, setSelectedCategory] =
+    useState("all");
 
-async function connectDB() {
 
-  if (!db) {
+  // ========================================
+  // NEWSLETTER SUBSCRIBE
+  // ========================================
 
-    if (!process.env.MONGODB_URI) {
+  const handleSubscribe = async () => {
 
-      throw new Error(
-        "MONGODB_URI is missing"
+    if (!email.trim()) {
+      setMessage("Please enter your email");
+      return;
+    }
+
+    try {
+
+      const response = await fetch(
+        `${API_URL}/newsletter`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json"
+          },
+
+          body: JSON.stringify({
+            email: email
+          })
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setMessage(data.message);
+        return;
+      }
+
+      setMessage(data.message);
+      setEmail("");
+
+    } catch (error) {
+
+      console.error(
+        "Newsletter error:",
+        error
+      );
+
+      setMessage(
+        "Something went wrong. Please try again."
       );
 
     }
+  };
 
-    await client.connect();
 
-    db = client.db("davira");
+  // ========================================
+  // TOGGLE MOBILE MENU
+  // ========================================
 
-    console.log(
-      "MongoDB connected"
-    );
-  }
+  const toggleMenu = () => {
+    setMenuOpen(!menuOpen);
+  };
 
-  return db;
-}
 
+  // ========================================
+  // GET CART FROM SERVER
+  // ========================================
 
-// ========================================
-// TEST ROUTE
-// ========================================
+  useEffect(() => {
 
-app.get("/", (req, res) => {
+    const getCart = async () => {
 
-  res.status(200).json({
-    message:
-      "Davira backend is working"
-  });
+      try {
 
-});
-
-
-// ========================================
-// GET CART
-// ========================================
-
-app.get("/cart", async (req, res) => {
-
-  try {
-
-    const userId =
-      req.headers["user-id"];
-
-    if (!userId) {
-
-      return res.status(400).json({
-        message:
-          "User ID is required"
-      });
-
-    }
-
-    if (!ObjectId.isValid(userId)) {
-
-      return res.status(400).json({
-        message:
-          "Invalid user ID"
-      });
-
-    }
-
-    const database =
-      await connectDB();
-
-    const cartCollection =
-      database.collection("cart");
-
-    const cart =
-      await cartCollection
-        .find({
-          userId:
-            new ObjectId(userId)
-        })
-        .sort({
-          createdAt: -1
-        })
-        .toArray();
-
-    res.status(200).json(cart);
-
-  } catch (error) {
-
-    console.error(
-      "GET CART ERROR:",
-      error
-    );
-
-    res.status(500).json({
-      message:
-        "Failed to get cart"
-    });
-
-  }
-
-});
-
-
-// ========================================
-// ADD PRODUCT TO CART
-// ========================================
-
-app.post("/cart", async (req, res) => {
-
-  try {
-
-    const {
-      userId,
-      productId,
-      name,
-      brand,
-      price,
-      sizes,
-      image,
-      quantity
-    } = req.body;
-
-
-    // ========================================
-    // VALIDATE REQUIRED DATA
-    // ========================================
-
-    if (
-      !userId ||
-      productId === undefined ||
-      !name ||
-      !brand ||
-      price === undefined ||
-      !sizes ||
-      !image
-    ) {
-
-      return res.status(400).json({
-        message:
-          "Missing product information"
-      });
-
-    }
-
-
-    // ========================================
-    // VALIDATE USER ID
-    // ========================================
-
-    if (!ObjectId.isValid(userId)) {
-
-      return res.status(400).json({
-        message:
-          "Invalid user ID"
-      });
-
-    }
-
-
-    const numericProductId =
-      Number(productId);
-
-    const numericPrice =
-      Number(price);
-
-    const numericQuantity =
-      Number(quantity || 1);
-
-
-    if (
-      !Number.isInteger(
-        numericProductId
-      )
-    ) {
-
-      return res.status(400).json({
-        message:
-          "Invalid product ID"
-      });
-
-    }
-
-
-    if (
-      !Number.isFinite(
-        numericPrice
-      ) ||
-      numericPrice < 0
-    ) {
-
-      return res.status(400).json({
-        message:
-          "Invalid product price"
-      });
-
-    }
-
-
-    if (
-      !Number.isInteger(
-        numericQuantity
-      ) ||
-      numericQuantity < 1
-    ) {
-
-      return res.status(400).json({
-        message:
-          "Invalid quantity"
-      });
-
-    }
-
-
-    const database =
-      await connectDB();
-
-    const cartCollection =
-      database.collection("cart");
-
-
-    const mongoUserId =
-      new ObjectId(userId);
-
-
-    // ========================================
-    // CHECK EXISTING PRODUCT
-    // ========================================
-
-    const existingProduct =
-      await cartCollection.findOne({
-        userId: mongoUserId,
-        productId: numericProductId
-      });
-
-
-    // ========================================
-    // PRODUCT ALREADY EXISTS
-    // ========================================
-
-    if (existingProduct) {
-
-      const newQuantity =
-        Number(
-          existingProduct.quantity || 1
-        ) + numericQuantity;
-
-
-      const updatedProduct =
-        await cartCollection.findOneAndUpdate(
-
+        const response = await fetch(
+          `${API_URL}/cart`,
           {
-            _id:
-              existingProduct._id
-          },
-
-          {
-            $set: {
-              quantity:
-                newQuantity,
-
-              updatedAt:
-                new Date()
+            headers: {
+              "user-id": storedUser?.id
             }
-          },
-
-          {
-            returnDocument:
-              "after"
           }
-
         );
 
+        if (!response.ok) {
+          throw new Error(
+            "Failed to fetch cart"
+          );
+        }
 
-      return res.status(200).json({
+        const data = await response.json();
 
-        message:
-          "Product quantity updated",
+        console.log(
+          "CART FROM SERVER:",
+          data
+        );
 
-        cartItem:
-          updatedProduct
+        setCart(data);
 
-      });
+      } catch (error) {
+
+        console.error(
+          "Error fetching cart:",
+          error
+        );
+
+      }
+
+    };
+
+    getCart();
+
+  }, []);
+
+
+  // ========================================
+  // ADD PRODUCT TO CART
+  // ========================================
+
+  const handleAddToCart = async (
+    selectedProduct
+  ) => {
+
+    try {
+
+      if (!storedUser?.id) {
+
+        alert(
+          "Please login before adding products to cart"
+        );
+
+        navigate("/login");
+
+        return;
+      }
+
+
+      const response = await fetch(
+        `${API_URL}/cart`,
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type": "application/json",
+            "user-id": storedUser.id
+          },
+
+          body: JSON.stringify({
+            userId: storedUser.id,
+            productId: selectedProduct.id,
+            name: selectedProduct.name,
+            brand: selectedProduct.brand,
+            price: selectedProduct.price,
+            sizes: selectedProduct.sizes,
+            image: selectedProduct.image,
+            quantity: 1
+          })
+        }
+      );
+
+
+      const data = await response.json();
+
+
+      console.log(
+        "ADD TO CART RESPONSE:",
+        data
+      );
+
+
+      if (!response.ok) {
+
+        throw new Error(
+          data.message ||
+          "Failed to add product"
+        );
+
+      }
+
+
+      // ========================================
+      // GET UPDATED CART
+      // ========================================
+
+      const response2 = await fetch(
+        `${API_URL}/cart`,
+        {
+          headers: {
+            "user-id": storedUser.id
+          }
+        }
+      );
+
+
+      if (!response2.ok) {
+
+        throw new Error(
+          "Failed to get updated cart"
+        );
+
+      }
+
+
+      const updatedCart =
+        await response2.json();
+
+
+      console.log(
+        "UPDATED CART:",
+        updatedCart
+      );
+
+
+      setCart(updatedCart);
+
+
+    } catch (error) {
+
+      console.error(
+        "ADD TO CART ERROR:",
+        error
+      );
+
+      alert(error.message);
 
     }
 
+  };
 
-    // ========================================
-    // CREATE NEW CART ITEM
-    // ========================================
 
-    const newCartItem = {
+  // ========================================
+  // CART COUNT
+  // ========================================
 
-      userId:
-        mongoUserId,
+  const cartCount = cart.reduce(
+    (total, item) =>
+      total + Number(item.quantity || 1),
+    0
+  );
 
-      productId:
-        numericProductId,
 
-      name:
-        name.trim(),
+  // ========================================
+  // SEARCH PRODUCTS
+  // ========================================
 
-      brand:
-        brand.trim(),
+  const filteredProducts =
+    product.filter(
+      (item) =>
+        item.name
+          .toLowerCase()
+          .includes(
+            searchTerm.toLowerCase()
+          ) ||
 
-      price:
-        numericPrice,
+        item.brand
+          .toLowerCase()
+          .includes(
+            searchTerm.toLowerCase()
+          ) ||
 
-      sizes:
-        sizes,
+        item.sizes
+          .toLowerCase()
+          .includes(
+            searchTerm.toLowerCase()
+          )
+    );
 
-      image:
-        image,
 
-      quantity:
-        numericQuantity,
+  // ========================================
+  // CATEGORY PRODUCTS
+  // ========================================
 
-      createdAt:
-        new Date(),
+  const categoryProducts =
+    filteredProducts.filter(
+      (item) => {
 
-      updatedAt:
-        new Date()
+        if (selectedCategory === "all") {
+          return true;
+        }
+
+        return (
+          item.name
+            .trim()
+            .toLowerCase() ===
+          selectedCategory
+            .trim()
+            .toLowerCase()
+        );
+
+      }
+    );
+
+
+  // ========================================
+  // CATEGORY CLICK
+  // ========================================
+
+  const handleCategoryClick =
+    (category) => {
+
+      setSelectedCategory(category);
 
     };
 
 
-    const result =
-      await cartCollection.insertOne(
-        newCartItem
-      );
+  return (
 
+    <div className="bod">
 
-    // ========================================
-    // RESPONSE
-    // ========================================
+      {/* ========================================
+          HEADER
+      ======================================== */}
 
-    res.status(201).json({
+      <header className="head">
 
-      message:
-        "Product added to cart successfully",
+        <button
+          className="menu-btn"
+          onClick={toggleMenu}
+        >
+          ☰
+        </button>
 
-      cartItem: {
 
-        _id:
-          result.insertedId,
+        {menuOpen && (
 
-        ...newCartItem
+          <div className="mobile-menu">
 
-      }
+            <button
+              className="close-btn"
+              onClick={toggleMenu}
+            >
+              ✕
+            </button>
 
-    });
 
-  } catch (error) {
+            <h2>
+              Davira Products
+            </h2>
 
-    console.error(
-      "ADD TO CART ERROR:",
-      error
-    );
 
-    res.status(500).json({
+            <div className="cvn"></div>
 
-      message:
-        "Failed to add product to cart"
 
-    });
+            <span>
+              Welcome to Davira Products 👋
+            </span>
 
-  }
+            <br />
 
-});
 
+            <p>
+              Explore our collections,
+              discover quality products,
+              and shop with confidence.
+            </p>
 
-// ========================================
-// UPDATE CART QUANTITY
-// ========================================
 
-app.put("/cart/:id", async (req, res) => {
+            <div className="get"></div>
 
-  try {
 
-    const { id } =
-      req.params;
+            <div className="menu-links">
 
-    const {
-      quantity
-    } = req.body;
+              <div className="os">
 
+                <div>
+                  <FaHome />
+                </div>
 
-    // ========================================
-    // VALIDATE CART ID
-    // ========================================
+                <a href="/">
+                  Home
+                </a>
 
-    if (!ObjectId.isValid(id)) {
+              </div>
 
-      return res.status(400).json({
-        message:
-          "Invalid cart item ID"
-      });
 
-    }
+              <div className="os">
 
+                <div>
+                  <FaThLarge />
+                </div>
 
-    const newQuantity =
-      Number(quantity);
+                <a href="#">
+                  All Products
+                </a>
 
+              </div>
 
-    // ========================================
-    // VALIDATE QUANTITY
-    // ========================================
 
-    if (
-      !Number.isInteger(
-        newQuantity
-      ) ||
-      newQuantity < 1
-    ) {
+              <div className="os">
 
-      return res.status(400).json({
-        message:
-          "Quantity must be at least 1"
-      });
+                <div>
+                  <FaTag />
+                </div>
 
-    }
+                <a href="/#">
+                  Categories
+                </a>
 
+              </div>
 
-    const database =
-      await connectDB();
 
-    const cartCollection =
-      database.collection("cart");
+              <div className="os">
 
+                <div>
+                  <FaShoppingCart />
+                </div>
 
-    // ========================================
-    // UPDATE
-    // ========================================
+                <a href="#">
+                  My Cart
+                </a>
 
-    const updatedCartItem =
-      await cartCollection.findOneAndUpdate(
+              </div>
 
-        {
-          _id:
-            new ObjectId(id)
-        },
 
-        {
-          $set: {
+              <div className="os">
 
-            quantity:
-              newQuantity,
+                <div>
+                  <FaShoppingBag />
+                </div>
 
-            updatedAt:
-              new Date()
+                <a href="#">
+                  My Orders
+                </a>
 
-          }
-        },
+              </div>
 
-        {
-          returnDocument:
-            "after"
-        }
 
-      );
+              <div className="os">
 
+                <div>
+                  <FaHeadset />
+                </div>
 
-    if (!updatedCartItem) {
+                <a href="#">
+                  Contact Us
+                </a>
 
-      return res.status(404).json({
-        message:
-          "Cart item not found"
-      });
+              </div>
 
-    }
 
+              <div className="os">
 
-    res.status(200).json({
+                <div>
+                  <FaUser />
+                </div>
 
-      message:
-        "Cart quantity updated",
+                <a href="#">
+                  Login
+                </a>
 
-      cartItem:
-        updatedCartItem
+              </div>
 
-    });
+            </div>
 
-  } catch (error) {
 
-    console.error(
-      "UPDATE CART ERROR:",
-      error
-    );
+            <div className="llw"></div>
 
-    res.status(500).json({
 
-      message:
-        "Failed to update cart"
+            <div>
 
-    });
+              <div className="wbv">
 
-  }
+                <div className="tyur">
+                  <FaShieldAlt />
+                </div>
 
-});
+                <div>
 
+                  <h3>
+                    Shop with confidence
+                  </h3>
 
-// ========================================
-// DELETE CART ITEM
-// ========================================
+                  <p>
+                    Quality products delivered
+                    to you
+                  </p>
 
-app.delete("/cart/:id", async (req, res) => {
+                </div>
 
-  try {
+              </div>
 
-    const { id } =
-      req.params;
+            </div>
 
+          </div>
 
-    // ========================================
-    // VALIDATE ID
-    // ========================================
+        )}
 
-    if (!ObjectId.isValid(id)) {
 
-      return res.status(400).json({
-        message:
-          "Invalid cart item ID"
-      });
+        <h2>
+          Davira Products
+        </h2>
 
-    }
 
+        <div className="kil"></div>
 
-    const database =
-      await connectDB();
 
-    const cartCollection =
-      database.collection("cart");
+        <div className="rpo">
 
+          {/* SEARCH */}
 
-    // ========================================
-    // DELETE
-    // ========================================
-
-    const result =
-      await cartCollection.deleteOne({
-
-        _id:
-          new ObjectId(id)
-
-      });
-
-
-    if (
-      result.deletedCount === 0
-    ) {
-
-      return res.status(404).json({
-
-        message:
-          "Cart item not found"
-
-      });
-
-    }
-
-
-    res.status(200).json({
-
-      message:
-        "Cart item deleted successfully"
-
-    });
-
-  } catch (error) {
-
-    console.error(
-      "DELETE CART ERROR:",
-      error
-    );
-
-    res.status(500).json({
-
-      message:
-        "Failed to delete cart item"
-
-    });
-
-  }
-
-});
-
-
-// ========================================
-// GET REVIEWS FOR PRODUCT
-// ========================================
-
-app.get(
-  "/reviews/:productId",
-  async (req, res) => {
-
-    try {
-
-      const {
-        productId
-      } = req.params;
-
-
-      if (!productId) {
-
-        return res.status(400).json({
-
-          message:
-            "Product ID is required"
-
-        });
-
-      }
-
-
-      const numericProductId =
-        Number(productId);
-
-
-      if (
-        !Number.isInteger(
-          numericProductId
-        )
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Invalid product ID"
-
-        });
-
-      }
-
-
-      const database =
-        await connectDB();
-
-      const reviewsCollection =
-        database.collection(
-          "reviews"
-        );
-
-
-      const reviews =
-        await reviewsCollection
-          .find({
-
-            productId:
-              numericProductId
-
-          })
-          .sort({
-
-            createdAt:
-              -1
-
-          })
-          .toArray();
-
-
-      res.status(200).json(
-        reviews
-      );
-
-    } catch (error) {
-
-      console.error(
-        "GET REVIEWS ERROR:",
-        error
-      );
-
-      res.status(500).json({
-
-        message:
-          "Failed to get reviews"
-
-      });
-
-    }
-
-  }
-);
-
-
-// ========================================
-// ADD REVIEW
-// ========================================
-
-app.post(
-  "/reviews",
-  async (req, res) => {
-
-    try {
-
-      const {
-        productId,
-        productName,
-        name,
-        rating,
-        comment
-      } = req.body;
-
-
-      // ========================================
-      // REQUIRED DATA
-      // ========================================
-
-      if (
-        productId === undefined ||
-        !name ||
-        rating === undefined ||
-        !comment
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Please provide all review information"
-
-        });
-
-      }
-
-
-      const cleanName =
-        name.trim();
-
-      const cleanComment =
-        comment.trim();
-
-
-      if (
-        !cleanName ||
-        !cleanComment
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Name and comment cannot be empty"
-
-        });
-
-      }
-
-
-      // ========================================
-      // PRODUCT ID
-      // ========================================
-
-      const reviewProductId =
-        Number(productId);
-
-
-      if (
-        !Number.isInteger(
-          reviewProductId
-        )
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Invalid product ID"
-
-        });
-
-      }
-
-
-      // ========================================
-      // RATING
-      // ========================================
-
-      const reviewRating =
-        Number(rating);
-
-
-      if (
-        !Number.isInteger(
-          reviewRating
-        ) ||
-        reviewRating < 1 ||
-        reviewRating > 5
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Rating must be between 1 and 5"
-
-        });
-
-      }
-
-
-      const database =
-        await connectDB();
-
-      const reviewsCollection =
-        database.collection(
-          "reviews"
-        );
-
-
-      // ========================================
-      // CREATE REVIEW
-      // ========================================
-
-      const newReview = {
-
-        productId:
-          reviewProductId,
-
-        productName:
-          productName?.trim() ||
-          "Product",
-
-        name:
-          cleanName,
-
-        rating:
-          reviewRating,
-
-        comment:
-          cleanComment,
-
-        createdAt:
-          new Date(),
-
-        updatedAt:
-          new Date()
-
-      };
-
-
-      const result =
-        await reviewsCollection.insertOne(
-          newReview
-        );
-
-
-      res.status(201).json({
-
-        message:
-          "Review submitted successfully",
-
-        review: {
-
-          _id:
-            result.insertedId,
-
-          ...newReview
-
-        }
-
-      });
-
-    } catch (error) {
-
-      console.error(
-        "ADD REVIEW ERROR:",
-        error
-      );
-
-      res.status(500).json({
-
-        message:
-          "Failed to submit review"
-
-      });
-
-    }
-
-  }
-);
-
-
-// ========================================
-// DELETE REVIEW
-// ========================================
-
-app.delete(
-  "/reviews/:id",
-  async (req, res) => {
-
-    try {
-
-      const { id } =
-        req.params;
-
-
-      if (
-        !ObjectId.isValid(id)
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Invalid review ID"
-
-        });
-
-      }
-
-
-      const database =
-        await connectDB();
-
-      const reviewsCollection =
-        database.collection(
-          "reviews"
-        );
-
-
-      const result =
-        await reviewsCollection.deleteOne({
-
-          _id:
-            new ObjectId(id)
-
-        });
-
-
-      if (
-        result.deletedCount === 0
-      ) {
-
-        return res.status(404).json({
-
-          message:
-            "Review not found"
-
-        });
-
-      }
-
-
-      res.status(200).json({
-
-        message:
-          "Review deleted successfully"
-
-      });
-
-    } catch (error) {
-
-      console.error(
-        "DELETE REVIEW ERROR:",
-        error
-      );
-
-      res.status(500).json({
-
-        message:
-          "Failed to delete review"
-
-      });
-
-    }
-
-  }
-);
-
-
-// ========================================
-// REGISTER
-// ========================================
-
-app.post(
-  "/register",
-  async (req, res) => {
-
-    try {
-
-      const {
-        name,
-        email,
-        password
-      } = req.body;
-
-
-      // ========================================
-      // REQUIRED DATA
-      // ========================================
-
-      if (
-        !name ||
-        !email ||
-        !password
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Please provide name, email and password"
-
-        });
-
-      }
-
-
-      const cleanName =
-        name.trim();
-
-      const cleanEmail =
-        email
-          .trim()
-          .toLowerCase();
-
-
-      // ========================================
-      // VALIDATE NAME
-      // ========================================
-
-      if (!cleanName) {
-
-        return res.status(400).json({
-
-          message:
-            "Name cannot be empty"
-
-        });
-
-      }
-
-
-      // ========================================
-      // VALIDATE EMAIL
-      // ========================================
-
-      const emailRegex =
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-
-      if (
-        !emailRegex.test(
-          cleanEmail
-        )
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Please provide a valid email address"
-
-        });
-
-      }
-
-
-      // ========================================
-      // VALIDATE PASSWORD
-      // ========================================
-
-      if (
-        password.length < 6
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Password must be at least 6 characters"
-
-        });
-
-      }
-
-
-      // ========================================
-      // DATABASE
-      // ========================================
-
-      const database =
-        await connectDB();
-
-      const usersCollection =
-        database.collection(
-          "users"
-        );
-
-
-      // ========================================
-      // CHECK EXISTING USER
-      // ========================================
-
-      const existingUser =
-        await usersCollection.findOne({
-
-          email:
-            cleanEmail
-
-        });
-
-
-      if (existingUser) {
-
-        return res.status(409).json({
-
-          message:
-            "An account with this email already exists"
-
-        });
-
-      }
-
-
-      // ========================================
-      // HASH PASSWORD
-      // ========================================
-
-      const hashedPassword =
-        await bcrypt.hash(
-          password,
-          10
-        );
-
-
-      // ========================================
-      // CREATE USER
-      // ========================================
-
-      const newUser = {
-
-        name:
-          cleanName,
-
-        email:
-          cleanEmail,
-
-        password:
-          hashedPassword,
-
-        role:
-          "user",
-
-        createdAt:
-          new Date(),
-
-        updatedAt:
-          new Date()
-
-      };
-
-
-      const result =
-        await usersCollection.insertOne(
-          newUser
-        );
-
-
-      // ========================================
-      // RESPONSE
-      // ========================================
-
-      res.status(201).json({
-
-        message:
-          "Registration successful",
-
-        user: {
-
-          id:
-            result.insertedId.toString(),
-
-          name:
-            cleanName,
-
-          email:
-            cleanEmail,
-
-          role:
-            "user"
-
-        }
-
-      });
-
-    } catch (error) {
-
-      console.error(
-        "REGISTER ERROR:",
-        error
-      );
-
-      res.status(500).json({
-
-        message:
-          "Registration failed"
-
-      });
-
-    }
-
-  }
-);
-
-
-// ========================================
-// LOGIN
-// ========================================
-
-app.post(
-  "/login",
-  async (req, res) => {
-
-    try {
-
-      const {
-        email,
-        password
-      } = req.body;
-
-
-      // ========================================
-      // REQUIRED DATA
-      // ========================================
-
-      if (
-        !email ||
-        !password
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Please provide email and password"
-
-        });
-
-      }
-
-
-      const cleanEmail =
-        email
-          .trim()
-          .toLowerCase();
-
-
-      // ========================================
-      // DATABASE
-      // ========================================
-
-      const database =
-        await connectDB();
-
-      const usersCollection =
-        database.collection(
-          "users"
-        );
-
-
-      // ========================================
-      // FIND USER
-      // ========================================
-
-      const user =
-        await usersCollection.findOne({
-
-          email:
-            cleanEmail
-
-        });
-
-
-      if (!user) {
-
-        return res.status(401).json({
-
-          message:
-            "Invalid email or password"
-
-        });
-
-      }
-
-
-      // ========================================
-      // CHECK PASSWORD
-      // ========================================
-
-      const passwordCorrect =
-        await bcrypt.compare(
-
-          password,
-
-          user.password
-
-        );
-
-
-      if (!passwordCorrect) {
-
-        return res.status(401).json({
-
-          message:
-            "Invalid email or password"
-
-        });
-
-      }
-
-
-      // ========================================
-      // LOGIN SUCCESS
-      // ========================================
-
-      res.status(200).json({
-
-        message:
-          "Login successful",
-
-        user: {
-
-          id:
-            user._id.toString(),
-
-          name:
-            user.name,
-
-          email:
-            user.email,
-
-          role:
-            user.role ||
-            "user"
-
-        }
-
-      });
-
-    } catch (error) {
-
-      console.error(
-        "LOGIN ERROR:",
-        error
-      );
-
-      res.status(500).json({
-
-        message:
-          "Login failed"
-
-      });
-
-    }
-
-  }
-);
-
-
-// ========================================
-// CREATE ADMIN ACCOUNT
-// ========================================
-
-async function createAdmin() {
-
-  try {
-
-    const adminEmail =
-      process.env.ADMIN_EMAIL
-        ?.trim()
-        .toLowerCase();
-
-    const adminPassword =
-      process.env.ADMIN_PASSWORD;
-
-
-    // ========================================
-    // CHECK ENVIRONMENT VARIABLES
-    // ========================================
-
-    if (
-      !adminEmail ||
-      !adminPassword
-    ) {
-
-      console.log(
-        "ADMIN_EMAIL or ADMIN_PASSWORD is missing. Admin setup skipped."
-      );
-
-      return;
-
-    }
-
-
-    const database =
-      await connectDB();
-
-    const usersCollection =
-      database.collection(
-        "users"
-      );
-
-
-    // ========================================
-    // CHECK ADMIN
-    // ========================================
-
-    const existingAdmin =
-      await usersCollection.findOne({
-
-        email:
-          adminEmail
-
-      });
-
-
-    if (existingAdmin) {
-
-      console.log(
-        "Admin account already exists."
-      );
-
-      return;
-
-    }
-
-
-    // ========================================
-    // HASH ADMIN PASSWORD
-    // ========================================
-
-    const hashedPassword =
-      await bcrypt.hash(
-        adminPassword,
-        10
-      );
-
-
-    // ========================================
-    // CREATE ADMIN
-    // ========================================
-
-    await usersCollection.insertOne({
-
-      name:
-        "Davira Admin",
-
-      email:
-        adminEmail,
-
-      password:
-        hashedPassword,
-
-      role:
-        "admin",
-
-      createdAt:
-        new Date(),
-
-      updatedAt:
-        new Date()
-
-    });
-
-
-    console.log(
-      "Admin account created successfully."
-    );
-
-  } catch (error) {
-
-    console.error(
-      "CREATE ADMIN ERROR:",
-      error
-    );
-
-  }
-
-}
-
-
-// ========================================
-// NEWSLETTER
-// ========================================
-
-app.post(
-  "/newsletter",
-  async (req, res) => {
-
-    try {
-
-      const {
-        email
-      } = req.body;
-
-
-      if (!email) {
-
-        return res.status(400).json({
-
-          message:
-            "Please enter your email"
-
-        });
-
-      }
-
-
-      const cleanEmail =
-        email
-          .trim()
-          .toLowerCase();
-
-
-      const emailRegex =
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-
-      if (
-        !emailRegex.test(
-          cleanEmail
-        )
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Please enter a valid email address"
-
-        });
-
-      }
-
-
-      const database =
-        await connectDB();
-
-      const newsletterCollection =
-        database.collection(
-          "newsletter"
-        );
-
-
-      // ========================================
-      // CHECK EXISTING SUBSCRIBER
-      // ========================================
-
-      const existingSubscriber =
-        await newsletterCollection.findOne({
-
-          email:
-            cleanEmail
-
-        });
-
-
-      if (existingSubscriber) {
-
-        return res.status(409).json({
-
-          message:
-            "This email is already subscribed"
-
-        });
-
-      }
-
-
-      // ========================================
-      // SAVE SUBSCRIBER
-      // ========================================
-
-      await newsletterCollection.insertOne({
-
-        email:
-          cleanEmail,
-
-        createdAt:
-          new Date()
-
-      });
-
-
-      res.status(201).json({
-
-        message:
-          "Successfully subscribed to our newsletter"
-
-      });
-
-    } catch (error) {
-
-      console.error(
-        "NEWSLETTER ERROR:",
-        error
-      );
-
-      res.status(500).json({
-
-        message:
-          "Failed to subscribe to newsletter"
-
-      });
-
-    }
-
-  }
-);
-
-
-// ========================================
-// CREATE PAYMENT RECORD
-// ========================================
-
-app.post(
-  "/payment",
-  async (req, res) => {
-
-    try {
-
-      const {
-        userId,
-        email,
-        cartId,
-        productName,
-        quantity
-      } = req.body;
-
-
-      // ========================================
-      // REQUIRED DATA
-      // ========================================
-
-      if (
-        !userId ||
-        !email ||
-        !cartId
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Missing payment information"
-
-        });
-
-      }
-
-
-      // ========================================
-      // VALIDATE IDs
-      // ========================================
-
-      if (
-        !ObjectId.isValid(userId)
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Invalid user ID"
-
-        });
-
-      }
-
-
-      if (
-        !ObjectId.isValid(cartId)
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Invalid cart ID"
-
-        });
-
-      }
-
-
-      const database =
-        await connectDB();
-
-      const cartCollection =
-        database.collection(
-          "cart"
-        );
-
-      const paymentCollection =
-        database.collection(
-          "payments"
-        );
-
-
-      // ========================================
-      // FIND CART ITEM
-      // ========================================
-
-      const cartItem =
-        await cartCollection.findOne({
-
-          _id:
-            new ObjectId(cartId),
-
-          userId:
-            new ObjectId(userId)
-
-        });
-
-
-      if (!cartItem) {
-
-        return res.status(404).json({
-
-          message:
-            "Cart item not found"
-
-        });
-
-      }
-
-
-      // ========================================
-      // CALCULATE PRICE ON SERVER
-      // ========================================
-
-      const itemQuantity =
-        Number(quantity) ||
-        Number(cartItem.quantity) ||
-        1;
-
-      const itemPrice =
-        Number(cartItem.price);
-
-
-      if (
-        !Number.isFinite(
-          itemPrice
-        ) ||
-        itemPrice < 0
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Invalid product price"
-
-        });
-
-      }
-
-
-      if (
-        !Number.isInteger(
-          itemQuantity
-        ) ||
-        itemQuantity < 1
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Invalid quantity"
-
-        });
-
-      }
-
-
-      const amount =
-        itemPrice *
-        itemQuantity;
-
-
-      // ========================================
-      // CREATE PAYMENT RECORD
-      // ========================================
-
-      const payment = {
-
-        userId:
-          new ObjectId(userId),
-
-        email:
-          email
-            .trim()
-            .toLowerCase(),
-
-        cartId:
-          new ObjectId(cartId),
-
-        productName:
-          productName ||
-          cartItem.name,
-
-        quantity:
-          itemQuantity,
-
-        amount:
-          amount,
-
-        status:
-          "pending",
-
-        createdAt:
-          new Date(),
-
-        updatedAt:
-          new Date()
-
-      };
-
-
-      const result =
-        await paymentCollection.insertOne(
-          payment
-        );
-
-
-      // ========================================
-      // RESPONSE
-      // ========================================
-
-      res.status(201).json({
-
-        message:
-          "Payment record created",
-
-        payment: {
-
-          id:
-            result.insertedId.toString(),
-
-          amount:
-            amount,
-
-          email:
-            payment.email,
-
-          status:
-            "pending"
-
-        }
-
-      });
-
-    } catch (error) {
-
-      console.error(
-        "CREATE PAYMENT ERROR:",
-        error
-      );
-
-      res.status(500).json({
-
-        message:
-          "Failed to create payment"
-
-      });
-
-    }
-
-  }
-);
-
-
-// ========================================
-// VERIFY PAYSTACK PAYMENT
-// ========================================
-
-app.post(
-  "/payment/verify",
-  async (req, res) => {
-
-    try {
-
-      const {
-        reference,
-        paymentId
-      } = req.body;
-
-
-      if (
-        !reference ||
-        !paymentId
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Payment reference and payment ID are required"
-
-        });
-
-      }
-
-
-      if (
-        !ObjectId.isValid(
-          paymentId
-        )
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Invalid payment ID"
-
-        });
-
-      }
-
-
-      if (
-        !process.env.PAYSTACK_SECRET_KEY
-      ) {
-
-        return res.status(500).json({
-
-          message:
-            "Paystack secret key is missing"
-
-        });
-
-      }
-
-
-      // ========================================
-      // VERIFY WITH PAYSTACK
-      // ========================================
-
-      const paystackResponse =
-        await fetch(
-
-          `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
-
-          {
-
-            method:
-              "GET",
-
-            headers: {
-
-              Authorization:
-                `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
-
-              "Content-Type":
-                "application/json"
-
+          <input
+            type="text"
+            placeholder="Search products..."
+            value={searchTerm}
+            onChange={(e) =>
+              setSearchTerm(e.target.value)
             }
+          />
 
+
+          <button className="bn">
+            <FaSearch className="srr" />
+          </button>
+
+
+          <button
+            className="mobile-search-btn"
+            onClick={() =>
+              setSearchOpen(true)
+            }
+          >
+            <FaSearch />
+          </button>
+
+
+          {/* MOBILE SEARCH */}
+
+          {searchOpen && (
+
+            <div className="mobile-search-overlay">
+
+              <div className="mobile-search-box">
+
+                <div className="mobile-search-header">
+
+                  <input
+                    type="text"
+                    placeholder="Search products..."
+                    value={searchTerm}
+                    onChange={(e) =>
+                      setSearchTerm(
+                        e.target.value
+                      )
+                    }
+                    autoFocus
+                  />
+
+
+                  <button
+                    className="mobile-search-close"
+                    onClick={() =>
+                      setSearchOpen(false)
+                    }
+                  >
+                    ✕
+                  </button>
+
+                </div>
+
+
+                <div className="mobile-search-results">
+
+                  {searchTerm.trim() === "" ? (
+
+                    <>
+
+                      <h3>
+                        Popular Searches
+                      </h3>
+
+
+                      <div className="popular-searches">
+
+                        <button
+                          onClick={() =>
+                            setSearchTerm(
+                              "Jackets"
+                            )
+                          }
+                        >
+                          Jackets
+                        </button>
+
+
+                        <button
+                          onClick={() =>
+                            setSearchTerm(
+                              "Shoes"
+                            )
+                          }
+                        >
+                          Shoes
+                        </button>
+
+
+                        <button
+                          onClick={() =>
+                            setSearchTerm(
+                              "Bags"
+                            )
+                          }
+                        >
+                          Bags
+                        </button>
+
+
+                        <button
+                          onClick={() =>
+                            setSearchTerm(
+                              "Glasses"
+                            )
+                          }
+                        >
+                          Glasses
+                        </button>
+
+
+                        <button
+                          onClick={() =>
+                            setSearchTerm(
+                              "Wristwatch"
+                            )
+                          }
+                        >
+                          Watches
+                        </button>
+
+                      </div>
+
+                    </>
+
+                  ) : (
+
+                    <>
+
+                      <h3>
+                        Search Results
+                      </h3>
+
+
+                      {categoryProducts.length === 0 ? (
+
+                        <p className="no-search-results">
+                          No products found for "
+                          {searchTerm}"
+                        </p>
+
+                      ) : (
+
+                        categoryProducts
+                          .slice(0, 5)
+                          .map((item) => (
+
+                            <div
+                              className="mobile-search-result"
+                              key={item.id}
+                              onClick={() =>
+                                setSearchOpen(
+                                  false
+                                )
+                              }
+                            >
+
+                              <img
+                                src={item.image}
+                                alt={item.name}
+                              />
+
+
+                              <div>
+
+                                <h4>
+                                  {item.name}
+                                </h4>
+
+                                <p>
+                                  {item.brand}
+                                </p>
+
+                                <strong>
+                                  ₦{item.price}
+                                </strong>
+
+                              </div>
+
+                            </div>
+
+                          ))
+
+                      )}
+
+                    </>
+
+                  )}
+
+                </div>
+
+              </div>
+
+            </div>
+
+          )}
+
+
+          {/* CART */}
+
+          <div className="bt">
+
+            <button
+              className="cart"
+              onClick={() =>
+                navigate("/cart")
+              }
+            >
+
+              <FaShoppingCart />
+
+              <span className="lop">
+                {cartCount}
+              </span>
+
+            </button>
+
+          </div>
+
+        </div>
+
+      </header>
+
+
+      {/* ========================================
+          HERO SECTION
+      ======================================== */}
+
+      <div className="froe">
+
+        <div className="prop">
+
+          <h3>
+            New Collection
+          </h3>
+
+          <h1>
+            Welcome To <br />
+            Davira Products
+          </h1>
+
+          <p>
+            Discover quality products carefully
+            selected <br />
+            to make your everyday life
+            better. shop <br />
+            with confidence
+            and find something <br />
+            you will love.
+          </p>
+
+
+          <button
+            className="login-btn"
+            onClick={() =>
+              navigate("/login")
+            }
+          >
+            Login
+          </button>
+
+        </div>
+
+
+        <div className="ces">
+
+          <img
+            src={img23}
+            alt="Davira Products"
+          />
+
+        </div>
+
+      </div>
+
+
+      {/* ========================================
+          CATEGORIES
+      ======================================== */}
+
+      <div className="betty">
+
+        <div
+          onClick={() =>
+            setSelectedCategory("all")
           }
-
-        );
-
-
-      const paystackData =
-        await paystackResponse.json();
+        >
+          <FaThLarge className="iop" />
+        </div>
 
 
-      if (
-        !paystackResponse.ok ||
-        !paystackData.status
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            paystackData.message ||
-            "Payment verification failed"
-
-        });
-
-      }
+        <div
+          onClick={() =>
+            handleCategoryClick(
+              "Jackets"
+            )
+          }
+        >
+          <FaTshirt className="iop" />
+        </div>
 
 
-      const transaction =
-        paystackData.data;
+        <div
+          onClick={() =>
+            handleCategoryClick(
+              "Shoes"
+            )
+          }
+        >
+          <FaShoePrints className="iop" />
+        </div>
 
 
-      if (
-        transaction.status !==
-        "success"
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Payment was not successful"
-
-        });
-
-      }
+        <div
+          onClick={() =>
+            handleCategoryClick(
+              "Caps"
+            )
+          }
+        >
+          <FaHatCowboy className="iop" />
+        </div>
 
 
-      const database =
-        await connectDB();
+        <div
+          onClick={() =>
+            handleCategoryClick(
+              "Bags"
+            )
+          }
+        >
+          <FaShoppingBag className="iop" />
+        </div>
 
-      const paymentCollection =
-        database.collection(
-          "payments"
-        );
+
+        <div
+          onClick={() =>
+            handleCategoryClick(
+              "Glasses"
+            )
+          }
+        >
+          <FaGlasses className="iop" />
+        </div>
 
 
-      // ========================================
-      // FIND PAYMENT
-      // ========================================
+        <div
+          onClick={() =>
+            handleCategoryClick(
+              "Bangles"
+            )
+          }
+        >
+          <FaCircle className="iop" />
+        </div>
 
-      const payment =
-        await paymentCollection.findOne({
 
-          _id:
-            new ObjectId(
-              paymentId
+        <div
+          onClick={() =>
+            handleCategoryClick(
+              "Wristwatch"
+            )
+          }
+        >
+          <FaClock className="iop" />
+        </div>
+
+
+        <div
+          onClick={() =>
+            handleCategoryClick(
+              "Socks"
+            )
+          }
+        >
+          <FaSocks className="iop" />
+        </div>
+
+      </div>
+
+
+      {/* ========================================
+          PRODUCTS
+      ======================================== */}
+
+      <div className="ore">
+
+        <div className="div">
+
+          <span>
+            New Arrivals
+          </span>
+
+          <span>
+            Our Products
+          </span>
+
+        </div>
+
+
+        <div className="brt">
+
+          {categoryProducts.length === 0 ? (
+
+            <h2 className="no-results">
+              No products found in this category
+            </h2>
+
+          ) : (
+
+            categoryProducts.map(
+              (product) => (
+
+                <div
+                  key={product.id}
+                  className="clp"
+                >
+
+                  <img
+                    src={product.image}
+                    className="imh"
+                    alt={product.name}
+                  />
+
+
+                  <h3>
+                    {product.name}
+                  </h3>
+
+
+                  <h4>
+                    {product.brand}
+                  </h4>
+
+
+                  <h5>
+                    {product.sizes}
+                  </h5>
+
+
+                  <h6>
+                    ₦{product.price}
+                  </h6>
+
+
+                  {/* ADD TO CART */}
+
+                  <button
+                    className="jj"
+                    onClick={() =>
+                      handleAddToCart(
+                        product
+                      )
+                    }
+                  >
+                    Add to Cart
+                  </button>
+
+
+                  {/* REVIEWS */}
+
+                  <button
+                    className="ji"
+                    onClick={() =>
+                      navigate(
+                        `/reviews/${product.id}`,
+                        {
+                          state: {
+                            product
+                          }
+                        }
+                      )
+                    }
+                  >
+                    ⭐ Reviews
+                  </button>
+
+                </div>
+
+              )
             )
 
-        });
+          )}
 
+        </div>
 
-      if (!payment) {
+      </div>
 
-        return res.status(404).json({
 
-          message:
-            "Payment record not found"
+      {/* ========================================
+          PROMOTION
+      ======================================== */}
 
-        });
+      <div className="bas">
 
-      }
+        <div className="qty">
 
+          <h4>
+            TIMELESS <br />
+            STYLE
+          </h4>
 
-      // ========================================
-      // CHECK PAYMENT AMOUNT
-      // ========================================
+          <p>
+            Premium Watches for Every Look
+          </p>
 
-      const expectedAmount =
-        Number(payment.amount) *
-        100;
+        </div>
 
 
-      const paidAmount =
-        Number(transaction.amount);
+        <div className="xyz">
 
+          <h5>
+            Up To
+          </h5>
 
-      if (
-        paidAmount !==
-        expectedAmount
-      ) {
+          <h2>
+            30% Off
+          </h2>
 
-        return res.status(400).json({
+          <h6>
+            On Selected Items
+          </h6>
 
-          message:
-            "Payment amount does not match"
+        </div>
 
-        });
 
-      }
+        <div className="zt">
 
+          <h3>
+            FRAME YOUR <br />
+            STYLE
+          </h3>
 
-      // ========================================
-      // UPDATE PAYMENT
-      // ========================================
+          <p>
+            Stylish Eyewear for Every Look
+          </p>
 
-      await paymentCollection.updateOne(
+        </div>
 
-        {
-          _id:
-            new ObjectId(
-              paymentId
-            )
+      </div>
 
-        },
 
-        {
+      {/* ========================================
+          SERVICES
+      ======================================== */}
 
-          $set: {
+      <div className="free">
 
-            status:
-              "paid",
+        <div className="service">
 
-            reference:
-              reference,
+          <div className="wdf">
 
-            paystackTransactionId:
-              transaction.id,
+            <div>
+              <FaMotorcycle className="ppp" />
+            </div>
 
-            paidAt:
-              new Date(),
+            <div>
 
-            updatedAt:
-              new Date()
+              <h3>
+                Fast Delivery
+              </h3>
 
-          }
+              <p>
+                Quick and reliable delivery
+                to your doorstep.
+              </p>
 
-        }
+            </div>
 
-      );
+          </div>
 
+        </div>
 
-      // ========================================
-      // DELETE PAID CART ITEM
-      // ========================================
 
-      const cartCollection =
-        database.collection(
-          "cart"
-        );
+        <div className="service">
 
+          <div className="wdf">
 
-      await cartCollection.deleteOne({
+            <div>
+              <FaLock className="ppp" />
+            </div>
 
-        _id:
-          payment.cartId,
+            <div>
 
-        userId:
-          payment.userId
+              <h3>
+                Secure Payment
+              </h3>
 
-      });
+              <p>
+                Your payment information
+                is safe and secure.
+              </p>
 
+            </div>
 
-      // ========================================
-      // RESPONSE
-      // ========================================
+          </div>
 
-      res.status(200).json({
+        </div>
 
-        message:
-          "Payment verified successfully",
 
-        payment: {
+        <div className="service">
 
-          id:
-            paymentId,
+          <div className="wdf">
 
-          reference:
-            reference,
+            <div>
+              <FaHeadset className="ppp" />
+            </div>
 
-          amount:
-            payment.amount,
+            <div>
 
-          status:
-            "paid"
+              <h3>
+                Customer Support
+              </h3>
 
-        }
+              <p>
+                We are always here to help
+                you.
+              </p>
 
-      });
+            </div>
 
-    } catch (error) {
+          </div>
 
-      console.error(
-        "VERIFY PAYMENT ERROR:",
-        error
-      );
+        </div>
 
-      res.status(500).json({
 
-        message:
-          "Failed to verify payment"
+        <div className="service">
 
-      });
+          <div className="wdf">
 
-    }
+            <div>
+              <FaUndo className="ppp" />
+            </div>
 
-  }
-);
+            <div>
 
+              <h3>
+                Easy Returns
+              </h3>
 
-// ========================================
-// SERVER
-// ========================================
+              <p>
+                Simple and hassle-free
+                returns.
+              </p>
 
-// ========================================
-// SERVER
-// ========================================
+            </div>
 
-const PORT = process.env.PORT || 5000;
+          </div>
 
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Davira backend running on port ${PORT}`);
-});
+        </div>
 
+      </div>
 
-// ========================================
-// INITIALIZE ADMIN
-// ========================================
 
-createAdmin();
+      <div className="dv"></div>
 
 
-// ========================================
-// EXPORT FOR VERCEL
-// ========================================
+      {/* ========================================
+          FOOTER
+      ======================================== */}
 
-export default app;
+      <div className="foot">
+
+        <div className="rawer">
+
+          <div className="flip">
+
+            <h3>
+
+              <span>
+                DAVIRA
+              </span>
+
+              <br />
+
+              CLOTHING
+
+            </h3>
+
+
+            <p>
+              Premium clothing brand for men <br />
+              and women, Quality, Comfort and
+              style - always.
+            </p>
+
+
+            <div className="ot">
+
+              <a
+                href="https://www.facebook.com/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FaFacebook className="ww" />
+              </a>
+
+
+              <a
+                href="https://www.instagram.com/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FaInstagram className="ww" />
+              </a>
+
+
+              <a
+                href="https://x.com/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FaTwitter className="ww" />
+              </a>
+
+
+              <a
+                href="https://www.tiktok.com/"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FaTiktok className="ww" />
+              </a>
+
+            </div>
+
+          </div>
+
+
+          <div className="trut">
+
+            <h3>
+              CUSTOMER SERVICE
+            </h3>
+
+            <ul>
+
+              <li>
+                <a href="#">
+                  Track Order
+                </a>
+              </li>
+
+              <li>
+                <a href="#">
+                  Shipping & Delivery
+                </a>
+              </li>
+
+              <li>
+                <a href="#">
+                  Returns & Exchanges
+                </a>
+              </li>
+
+              <li>
+                <a href="#">
+                  Contact Us
+                </a>
+              </li>
+
+              <li>
+                <a href="#">
+                  FAQs
+                </a>
+              </li>
+
+            </ul>
+
+          </div>
+
+
+          <div className="bfr">
+
+            <h2>
+              COMPANY
+            </h2>
+
+            <ul>
+
+              <li>
+                <a href="#">
+                  About us
+                </a>
+              </li>
+
+              <li>
+                <a href="#">
+                  Our Stores
+                </a>
+              </li>
+
+              <li>
+                <a href="#">
+                  Careers
+                </a>
+              </li>
+
+              <li>
+                <a href="#">
+                  Privacy Policy
+                </a>
+              </li>
+
+              <li>
+                <a href="#">
+                  Terms & Conditions
+                </a>
+              </li>
+
+            </ul>
+
+          </div>
+
+
+          <div className="rita">
+
+            <h2>
+              SHOP
+            </h2>
+
+            <ul>
+
+              <li>
+                <a href="#">
+                  All Products
+                </a>
+              </li>
+
+              <li>
+                <a href="#">
+                  Sale
+                </a>
+              </li>
+
+              <li>
+                <a href="#">
+                  Jackets
+                </a>
+              </li>
+
+              <li>
+                <a href="#">
+                  Wristwatches
+                </a>
+              </li>
+
+              <li>
+                <a href="#">
+                  New Arrivals
+                </a>
+              </li>
+
+            </ul>
+
+          </div>
+
+
+          {/* ========================================
+              NEWSLETTER
+          ======================================== */}
+
+          <div className="cre">
+
+            <h2>
+              NEWSLETTER
+            </h2>
+
+
+            <p>
+              Subscribe to get updates on new <br />
+              arrivals and exclusive offers.
+            </p>
+
+
+            <div>
+
+              <input
+                type="email"
+                placeholder="Type your email here"
+                value={email}
+                onChange={(e) =>
+                  setEmail(e.target.value)
+                }
+              />
+
+
+              <button
+                onClick={handleSubscribe}
+              >
+                Subscribe
+              </button>
+
+            </div>
+
+
+            {message && (
+
+              <p className="newsletter-message">
+                {message}
+              </p>
+
+            )}
+
+          </div>
+
+        </div>
+
+
+        <div className="die"></div>
+
+
+        <div className="frpo">
+
+          <div className="deu">
+
+            <h3>
+              © 2026 Davira Products.
+              All Rights Reserved.
+            </h3>
+
+          </div>
+
+
+          <div className="type">
+
+            <span>
+              <FaCcMastercard className="rc" />
+            </span>
+
+            <span>
+              <FaCcVisa className="cd" />
+            </span>
+
+            <span>
+              <FaCcPaypal className="dc" />
+            </span>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      {/* ========================================
+          MOBILE BOTTOM NAVIGATION
+      ======================================== */}
+
+      <div className="rss">
+
+        <div>
+
+          <a href="/">
+            <FaHome />
+          </a>
+
+        </div>
+
+
+        <div>
+
+          <a href="/cart">
+            <FaShoppingBag />
+          </a>
+
+        </div>
+
+
+        <div>
+
+          <a href="/login">
+            <FaUser />
+          </a>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  );
+
+};
+
+
+export default Home;

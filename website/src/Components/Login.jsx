@@ -43,7 +43,9 @@ const Login = () => {
         }
 
         const response = await fetch(
-          "https://davira-backend-api.vercel.app/register",
+          // "https://davira-backend-api.vercel.app/register",
+                   // "http://localhost:5000/register",
+          "",
           {
             method: "POST",
 
@@ -95,7 +97,9 @@ const Login = () => {
         }
 
         const response = await fetch(
-          "https://davira-backend-api.vercel.app/login",
+          // "https://davira-backend-api.vercel.app/login",
+          "http://localhost:5000/login",
+          
           {
             method: "POST",
 
