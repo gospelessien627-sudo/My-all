@@ -15,12 +15,25 @@ const app = express();
 // ========================================
 // CORS
 // ========================================
+// ========================================
+// CORS
+// ========================================
+
+// app.use(cors({
+//   origin: "http://localhost:5173",
+//   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+//   allowedHeaders: ["Content-Type", "user-id"]
+// }));
+
+
 app.use(cors({
-  origin: "https://my-all-3397.vercel.app",
+  origin: [
+    "http://localhost:5173",
+    "https://my-all-3397.vercel.app"
+  ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "user-id"]
 }));
-
 app.use(express.json());
 // app.use(express.json());
 // app.use(express.json());
@@ -2209,32 +2222,15 @@ app.post(
 // SERVER
 // ========================================
 
-const PORT =
-  process.env.PORT ||
-  5000;
-
-
 // ========================================
-// LOCAL DEVELOPMENT
+// SERVER
 // ========================================
 
-if (
-  process.env.NODE_ENV !==
-  "production"
-) {
+const PORT = process.env.PORT || 5000;
 
-  app.listen(
-    PORT,
-    () => {
-
-      console.log(
-        `Server running at http://localhost:${PORT}`
-      );
-
-    }
-  );
-
-}
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Davira backend running on port ${PORT}`);
+});
 
 
 // ========================================
