@@ -34,6 +34,14 @@ import {
   FaCcPaypal
 } from "react-icons/fa";
 
+
+// ========================================
+// LIVE BACKEND URL
+// ========================================
+
+const API_URL = "https://davira-backend.onrender.com";
+
+
 const Home = () => {
 
   const [cart, setCart] = useState([]);
@@ -53,7 +61,7 @@ const Home = () => {
 
 
   // ========================================
-  // GET CART FROM SERVER
+  // NEWSLETTER SUBSCRIBE
   // ========================================
 
   const handleSubscribe = async () => {
@@ -66,8 +74,7 @@ const Home = () => {
     try {
 
       const response = await fetch(
-        // "https://davira-backend-api.vercel.app/newsletter"
-        "http://localhost:5000/newsletter",
+        `${API_URL}/newsletter`,
         {
           method: "POST",
 
@@ -106,10 +113,18 @@ const Home = () => {
   };
 
 
+  // ========================================
+  // TOGGLE MOBILE MENU
+  // ========================================
+
   const toggleMenu = () => {
     setMenuOpen(!menuOpen);
   };
 
+
+  // ========================================
+  // GET CART FROM SERVER
+  // ========================================
 
   useEffect(() => {
 
@@ -118,8 +133,7 @@ const Home = () => {
       try {
 
         const response = await fetch(
-          // "https://davira-backend-api.vercel.app/cart",
-            "http://localhost:5000/cart",
+          `${API_URL}/cart`,
           {
             headers: {
               "user-id": storedUser?.id
@@ -180,29 +194,28 @@ const Home = () => {
       }
 
 
-  const response = await fetch(
-  // "https://davira-backend-api.vercel.app/cart"
-  "http://localhost:5000/cart",
-  {
-    method: "POST",
+      const response = await fetch(
+        `${API_URL}/cart`,
+        {
+          method: "POST",
 
-    headers: {
-      "Content-Type": "application/json",
-      "user-id": storedUser.id
-    },
+          headers: {
+            "Content-Type": "application/json",
+            "user-id": storedUser.id
+          },
 
-    body: JSON.stringify({
-      userId: storedUser.id,
-      productId: selectedProduct.id,
-      name: selectedProduct.name,
-      brand: selectedProduct.brand,
-      price: selectedProduct.price,
-      sizes: selectedProduct.sizes,
-      image: selectedProduct.image,
-      quantity: 1
-    })
-  }
-);
+          body: JSON.stringify({
+            userId: storedUser.id,
+            productId: selectedProduct.id,
+            name: selectedProduct.name,
+            brand: selectedProduct.brand,
+            price: selectedProduct.price,
+            sizes: selectedProduct.sizes,
+            image: selectedProduct.image,
+            quantity: 1
+          })
+        }
+      );
 
 
       const data = await response.json();
@@ -229,8 +242,7 @@ const Home = () => {
       // ========================================
 
       const response2 = await fetch(
-        // "https://davira-backend-api.vercel.app/cart",
-        "http://localhost:5000/cart",
+        `${API_URL}/cart`,
         {
           headers: {
             "user-id": storedUser.id
@@ -313,6 +325,10 @@ const Home = () => {
     );
 
 
+  // ========================================
+  // CATEGORY PRODUCTS
+  // ========================================
+
   const categoryProducts =
     filteredProducts.filter(
       (item) => {
@@ -333,6 +349,10 @@ const Home = () => {
       }
     );
 
+
+  // ========================================
+  // CATEGORY CLICK
+  // ========================================
 
   const handleCategoryClick =
     (category) => {
@@ -740,6 +760,7 @@ const Home = () => {
 
           )}
 
+
           {/* CART */}
 
           <div className="bt">
@@ -810,6 +831,7 @@ const Home = () => {
 
           <img
             src={img23}
+            alt="Davira Products"
           />
 
         </div>
@@ -1209,11 +1231,15 @@ const Home = () => {
           <div className="flip">
 
             <h3>
+
               <span>
                 DAVIRA
               </span>
+
               <br />
+
               CLOTHING
+
             </h3>
 
 
@@ -1395,6 +1421,10 @@ const Home = () => {
           </div>
 
 
+          {/* ========================================
+              NEWSLETTER
+          ======================================== */}
+
           <div className="cre">
 
             <h2>
@@ -1478,6 +1508,10 @@ const Home = () => {
       </div>
 
 
+      {/* ========================================
+          MOBILE BOTTOM NAVIGATION
+      ======================================== */}
+
       <div className="rss">
 
         <div>
@@ -1513,5 +1547,6 @@ const Home = () => {
   );
 
 };
+
 
 export default Home;
