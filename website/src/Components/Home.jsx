@@ -126,52 +126,57 @@ const Home = () => {
   // GET CART FROM SERVER
   // ========================================
 
-  useEffect(() => {
+useEffect(() => {
 
-    const getCart = async () => {
+  const getCart = async () => {
 
-      try {
+    // No logged-in user = don't call /cart
+    if (!storedUser?.id) {
+      setCart([]);
+      return;
+    }
 
-        const response = await fetch(
-          `${API_URL}/cart`,
-          {
-            headers: {
-              "user-id": storedUser?.id
-            }
+    try {
+
+      const response = await fetch(
+        `${API_URL}/cart`,
+        {
+          headers: {
+            "user-id": storedUser.id
           }
-        );
-
-        if (!response.ok) {
-          throw new Error(
-            "Failed to fetch cart"
-          );
         }
+      );
 
-        const data = await response.json();
+      const data = await response.json();
 
-        console.log(
-          "CART FROM SERVER:",
-          data
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to fetch cart"
         );
-
-        setCart(data);
-
-      } catch (error) {
-
-        console.error(
-          "Error fetching cart:",
-          error
-        );
-
       }
 
-    };
+      console.log(
+        "CART FROM SERVER:",
+        data
+      );
 
-    getCart();
+      setCart(data);
 
-  }, []);
+    } catch (error) {
 
+      console.error(
+        "Error fetching cart:",
+        error
+      );
 
+      setCart([]);
+
+    }
+  };
+
+  getCart();
+
+}, []);
   // ========================================
   // ADD PRODUCT TO CART
   // ========================================
