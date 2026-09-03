@@ -1665,6 +1665,10 @@ app.post(
 // CREATE PAYMENT RECORD
 // ========================================
 
+// ========================================
+// CREATE PAYMENT RECORD
+// ========================================
+
 app.post(
   "/payment",
   async (req, res) => {
@@ -1674,9 +1678,7 @@ app.post(
       const {
         userId,
         email,
-        cartId,
-        productName,
-        quantity
+        cartIds
       } = req.body;
 
 
@@ -1687,7 +1689,8 @@ app.post(
       if (
         !userId ||
         !email ||
-        !cartId
+        !Array.isArray(cartIds) ||
+        cartIds.length === 0
       ) {
 
         return res.status(400).json({
@@ -1701,7 +1704,7 @@ app.post(
 
 
       // ========================================
-      // VALIDATE IDs
+      // VALIDATE USER ID
       // ========================================
 
       if (
@@ -1718,8 +1721,19 @@ app.post(
       }
 
 
+      // ========================================
+      // VALIDATE CART IDS
+      // ========================================
+
+      const validCartIds =
+        cartIds.filter(
+          (id) => ObjectId.isValid(id)
+        );
+
+
       if (
-        !ObjectId.isValid(cartId)
+        validCartIds.length !==
+        cartIds.length
       ) {
 
         return res.status(400).json({
@@ -1735,10 +1749,12 @@ app.post(
       const database =
         await connectDB();
 
+
       const cartCollection =
         database.collection(
           "cart"
         );
+
 
       const paymentCollection =
         database.collection(
@@ -1747,27 +1763,40 @@ app.post(
 
 
       // ========================================
-      // FIND CART ITEM
+      // FIND USER'S CART ITEMS
       // ========================================
 
-      const cartItem =
-        await cartCollection.findOne({
+      const cartItems =
+        await cartCollection
+          .find({
 
-          _id:
-            new ObjectId(cartId),
+            _id: {
+              $in:
+                validCartIds.map(
+                  (id) =>
+                    new ObjectId(id)
+                )
+            },
 
-          userId:
-            new ObjectId(userId)
+            userId:
+              new ObjectId(userId)
 
-        });
+          })
+          .toArray();
 
 
-      if (!cartItem) {
+      // ========================================
+      // CHECK CART ITEMS
+      // ========================================
+
+      if (
+        cartItems.length === 0
+      ) {
 
         return res.status(404).json({
 
           message:
-            "Cart item not found"
+            "Cart items not found"
 
         });
 
@@ -1775,59 +1804,61 @@ app.post(
 
 
       // ========================================
-      // CALCULATE PRICE ON SERVER
+      // CALCULATE TOTAL ON SERVER
       // ========================================
 
-      const itemQuantity =
-        Number(quantity) ||
-        Number(cartItem.quantity) ||
-        1;
-
-      const itemPrice =
-        Number(cartItem.price);
+      let totalAmount = 0;
 
 
-      if (
-        !Number.isFinite(
-          itemPrice
-        ) ||
-        itemPrice < 0
+      for (
+        const item of cartItems
       ) {
 
-        return res.status(400).json({
+        const price =
+          Number(item.price);
 
-          message:
-            "Invalid product price"
+        const quantity =
+          Number(item.quantity) || 1;
 
-        });
+
+        if (
+          !Number.isFinite(price) ||
+          price < 0
+        ) {
+
+          return res.status(400).json({
+
+            message:
+              "Invalid product price"
+
+          });
+
+        }
+
+
+        if (
+          !Number.isInteger(quantity) ||
+          quantity < 1
+        ) {
+
+          return res.status(400).json({
+
+            message:
+              "Invalid product quantity"
+
+          });
+
+        }
+
+
+        totalAmount +=
+          price * quantity;
 
       }
-
-
-      if (
-        !Number.isInteger(
-          itemQuantity
-        ) ||
-        itemQuantity < 1
-      ) {
-
-        return res.status(400).json({
-
-          message:
-            "Invalid quantity"
-
-        });
-
-      }
-
-
-      const amount =
-        itemPrice *
-        itemQuantity;
 
 
       // ========================================
-      // CREATE PAYMENT RECORD
+      // CREATE PAYMENT
       // ========================================
 
       const payment = {
@@ -1840,18 +1871,28 @@ app.post(
             .trim()
             .toLowerCase(),
 
-        cartId:
-          new ObjectId(cartId),
+        cartIds:
+          cartItems.map(
+            (item) =>
+              item._id
+          ),
 
-        productName:
-          productName ||
-          cartItem.name,
+        productNames:
+          cartItems.map(
+            (item) =>
+              item.name
+          ),
 
         quantity:
-          itemQuantity,
+          cartItems.reduce(
+            (total, item) =>
+              total +
+              Number(item.quantity || 1),
+            0
+          ),
 
         amount:
-          amount,
+          totalAmount,
 
         status:
           "pending",
@@ -1864,6 +1905,10 @@ app.post(
 
       };
 
+
+      // ========================================
+      // SAVE PAYMENT
+      // ========================================
 
       const result =
         await paymentCollection.insertOne(
@@ -1886,7 +1931,7 @@ app.post(
             result.insertedId.toString(),
 
           amount:
-            amount,
+            totalAmount,
 
           email:
             payment.email,
@@ -1897,6 +1942,7 @@ app.post(
         }
 
       });
+
 
     } catch (error) {
 
@@ -2155,21 +2201,26 @@ app.post(
       // DELETE PAID CART ITEM
       // ========================================
 
-      const cartCollection =
-        database.collection(
-          "cart"
-        );
+      // ========================================
+// DELETE PAID CART ITEMS
+// ========================================
 
+const cartCollection =
+  database.collection(
+    "cart"
+  );
 
-      await cartCollection.deleteOne({
+await cartCollection.deleteMany({
 
-        _id:
-          payment.cartId,
+  _id: {
+    $in:
+      payment.cartIds
+  },
 
-        userId:
-          payment.userId
+  userId:
+    payment.userId
 
-      });
+});
 
 
       // ========================================
