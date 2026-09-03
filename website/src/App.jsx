@@ -14,7 +14,8 @@ const App = () => {
     // Show loading screen for 3 seconds
     const timer = setTimeout(() => {
       setLoading(false);
-    }, 3000);
+    }, 2000);
+
 
     // Clean up timer
     return () => clearTimeout(timer);
