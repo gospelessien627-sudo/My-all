@@ -931,7 +931,7 @@ input{
   color: black;
   cursor: pointer;
   display: block;
-  top: 10px;
+  top: 25px;
   position: absolute;
   right: 326px;
   /* padding-left: 0px;
@@ -1035,7 +1035,7 @@ input{
 .prop{
     /* height: 120vh; */
     text-align: left;
-    padding-top: 10px;
+    padding-top: 30px;
     width: 100%;
     /* padding-left: 20px; */
     /* padding-top: 150px; */
@@ -1044,7 +1044,7 @@ input{
     /* padding-top: 200px; */
     /* padding-right: 10px; */
     /* text-align: left; */
-    font-size: 100px;
+    font-size: 50px;
 }
 .prop h3{
     /* padding-top: 300px; */
