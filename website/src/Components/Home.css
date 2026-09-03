@@ -1416,15 +1416,20 @@ svg{
     height: 43px;
 
     border: none;
+
     border-radius: 50%;
 
     background: rgb(236, 218, 184);
     /* color: #fff; */
 
     font-size: 37px;
+
     position: relative;
+
     cursor: pointer;
+
     left: 102px;
+    
     top: 6px;
     /* margin-right: 15px; */
   }
