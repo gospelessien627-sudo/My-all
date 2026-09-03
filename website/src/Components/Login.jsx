@@ -24,6 +24,10 @@ const Login = () => {
 
     setError("");
     setSuccess("");
+
+    // Prevent multiple clicks
+    if (loading) return;
+
     setLoading(true);
 
     try {
@@ -133,14 +137,19 @@ const Login = () => {
           navigate("/");
         }
       }
+
     } catch (error) {
+
       console.error(error);
 
       setError(
         error.message || "Something went wrong"
       );
+
     } finally {
+
       setLoading(false);
+
     }
   };
 
@@ -161,6 +170,7 @@ const Login = () => {
 
   return (
     <div className="auth-page">
+
       <div className="auth-card">
 
         <h1>
@@ -189,6 +199,8 @@ const Login = () => {
 
         <form onSubmit={handleSubmit}>
 
+          {/* REGISTER NAME */}
+
           {isRegister && (
             <div className="input-group">
 
@@ -208,6 +220,8 @@ const Login = () => {
             </div>
           )}
 
+          {/* EMAIL */}
+
           <div className="input-group">
 
             <label>
@@ -224,6 +238,8 @@ const Login = () => {
             />
 
           </div>
+
+          {/* PASSWORD */}
 
           <div className="input-group">
 
@@ -242,19 +258,33 @@ const Login = () => {
 
           </div>
 
+          {/* ========================================
+              LOGIN / REGISTER BUTTON
+          ======================================== */}
+
           <button
             type="submit"
             className="auth-button"
             disabled={loading}
           >
-            {loading
-              ? "Please wait..."
-              : isRegister
-              ? "Register"
-              : "Login"}
+
+            {loading ? (
+              <>
+                <span className="auth-spinner"></span>
+
+                Please wait...
+              </>
+            ) : (
+              isRegister
+                ? "Register"
+                : "Login"
+            )}
+
           </button>
 
         </form>
+
+        {/* SWITCH LOGIN / REGISTER */}
 
         <div className="switch-auth">
 
@@ -265,6 +295,7 @@ const Login = () => {
           <button
             type="button"
             onClick={switchMode}
+            disabled={loading}
           >
             {isRegister
               ? " Login"
@@ -273,14 +304,18 @@ const Login = () => {
 
         </div>
 
+        {/* BACK HOME */}
+
         <button
           className="back-home"
           onClick={() => navigate("/")}
+          disabled={loading}
         >
           Continue Shopping
         </button>
 
       </div>
+
     </div>
   );
 };

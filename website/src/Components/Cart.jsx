@@ -386,9 +386,11 @@ const Cart = () => {
       <h1>Your Cart</h1>
 
       {cart.length === 0 ? (
+        <div className="cloq">
         <h2>
           Your cart is empty
         </h2>
+        </div>
       ) : (
         <>
           {cart.map((item) => (
@@ -399,8 +401,9 @@ const Cart = () => {
 
               <img
                 src={item.image}
-                alt={item.name}
+                // alt={item.name}
               />
+              {/* <h3>{item.name}</h3>  */}
 
               <div className="quantity-controls">
 

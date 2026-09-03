@@ -16,7 +16,11 @@ const Reviews = () => {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
 
+  // Loading reviews
   const [loading, setLoading] = useState(true);
+
+  // Loading submit review
+  const [submitLoading, setSubmitLoading] = useState(false);
 
   // ========================================
   // GET REVIEWS
@@ -58,10 +62,16 @@ const Reviews = () => {
   const submitReview = async (e) => {
     e.preventDefault();
 
+    // Prevent multiple submissions
+    if (submitLoading) return;
+
     if (!name.trim() || !comment.trim()) {
       alert("Please fill in all fields");
       return;
     }
+
+    // Start spinner
+    setSubmitLoading(true);
 
     try {
       const response = await fetch(
@@ -111,6 +121,9 @@ const Reviews = () => {
         error.message ||
           "Failed to submit review"
       );
+    } finally {
+      // Stop spinner
+      setSubmitLoading(false);
     }
   };
 
@@ -247,6 +260,7 @@ const Reviews = () => {
             onChange={(e) =>
               setName(e.target.value)
             }
+            disabled={submitLoading}
           />
 
           {/* RATING */}
@@ -262,6 +276,7 @@ const Reviews = () => {
                 <FaStar
                   key={star}
                   onClick={() =>
+                    !submitLoading &&
                     setRating(star)
                   }
                   className={
@@ -283,10 +298,24 @@ const Reviews = () => {
             onChange={(e) =>
               setComment(e.target.value)
             }
+            disabled={submitLoading}
           />
 
-          <button type="submit">
-            Submit Review
+          {/* SUBMIT BUTTON */}
+
+          <button
+            type="submit"
+            className="submit-review-btn"
+            disabled={submitLoading}
+          >
+            {submitLoading ? (
+              <>
+                <span className="review-submit-spinner"></span>
+                Submitting...
+              </>
+            ) : (
+              "Submit Review"
+            )}
           </button>
 
         </form>

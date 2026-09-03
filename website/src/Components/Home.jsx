@@ -51,6 +51,10 @@ const Home = () => {
     localStorage.getItem("user")
   );
 
+  const [reviewLoading, setReviewLoading] = useState(null);
+  const [cartLoading, setCartLoading] = useState(null);
+  const [subscribeLoading, setSubscribeLoading] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
@@ -66,51 +70,60 @@ const Home = () => {
 
   const handleSubscribe = async () => {
 
-    if (!email.trim()) {
-      setMessage("Please enter your email");
+  if (!email.trim()) {
+    setMessage("Please enter your email");
+    return;
+  }
+
+  if (subscribeLoading) return;
+
+  setSubscribeLoading(true);
+  setMessage("");
+
+  try {
+
+    const response = await fetch(
+      `${API_URL}/newsletter`,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+          email: email
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setMessage(data.message);
       return;
     }
 
-    try {
+    setMessage(data.message);
+    setEmail("");
 
-      const response = await fetch(
-        `${API_URL}/newsletter`,
-        {
-          method: "POST",
+  } catch (error) {
 
-          headers: {
-            "Content-Type": "application/json"
-          },
+    console.error(
+      "Newsletter error:",
+      error
+    );
 
-          body: JSON.stringify({
-            email: email
-          })
-        }
-      );
+    setMessage(
+      "Something went wrong. Please try again."
+    );
 
-      const data = await response.json();
+  } finally {
 
-      if (!response.ok) {
-        setMessage(data.message);
-        return;
-      }
+    setSubscribeLoading(false);
 
-      setMessage(data.message);
-      setEmail("");
-
-    } catch (error) {
-
-      console.error(
-        "Newsletter error:",
-        error
-      );
-
-      setMessage(
-        "Something went wrong. Please try again."
-      );
-
-    }
-  };
+  }
+};
 
 
   // ========================================
@@ -177,119 +190,159 @@ useEffect(() => {
   getCart();
 
 }, []);
+
+
+
+// ========================================
+// REVIEW NAVIGATION
+// ========================================
+
+const handleReviewNavigation = (selectedProduct) => {
+
+  // Prevent multiple clicks
+  if (reviewLoading === selectedProduct.id) return;
+
+  setReviewLoading(selectedProduct.id);
+
+  setTimeout(() => {
+
+    navigate(
+      `/reviews/${selectedProduct.id}`,
+      {
+        state: {
+          product: selectedProduct
+        }
+      }
+    );
+
+  }, 1000);
+
+};
   // ========================================
   // ADD PRODUCT TO CART
   // ========================================
 
-  const handleAddToCart = async (
-    selectedProduct
-  ) => {
+// ========================================
+// ADD PRODUCT TO CART
+// ========================================
 
-    try {
+const handleAddToCart = async (selectedProduct) => {
 
-      if (!storedUser?.id) {
+  // Prevent clicking the same button multiple times
+  if (cartLoading === selectedProduct.id) return;
 
-        alert(
-          "Please login before adding products to cart"
-        );
+  setCartLoading(selectedProduct.id);
 
-        navigate("/login");
+  try {
 
-        return;
+    if (!storedUser?.id) {
+
+      alert(
+        "Please login before adding products to cart"
+      );
+
+      navigate("/login");
+
+      return;
+    }
+
+
+    const response = await fetch(
+      `${API_URL}/cart`,
+      {
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json",
+          "user-id": storedUser.id
+        },
+
+        body: JSON.stringify({
+          userId: storedUser.id,
+          productId: selectedProduct.id,
+          name: selectedProduct.name,
+          brand: selectedProduct.brand,
+          price: selectedProduct.price,
+          sizes: selectedProduct.sizes,
+          image: selectedProduct.image,
+          quantity: 1
+        })
       }
+    );
 
 
-      const response = await fetch(
-        `${API_URL}/cart`,
-        {
-          method: "POST",
+    const data = await response.json();
 
-          headers: {
-            "Content-Type": "application/json",
-            "user-id": storedUser.id
-          },
 
-          body: JSON.stringify({
-            userId: storedUser.id,
-            productId: selectedProduct.id,
-            name: selectedProduct.name,
-            brand: selectedProduct.brand,
-            price: selectedProduct.price,
-            sizes: selectedProduct.sizes,
-            image: selectedProduct.image,
-            quantity: 1
-          })
-        }
+    console.log(
+      "ADD TO CART RESPONSE:",
+      data
+    );
+
+
+    if (!response.ok) {
+
+      throw new Error(
+        data.message ||
+        "Failed to add product"
       );
-
-
-      const data = await response.json();
-
-
-      console.log(
-        "ADD TO CART RESPONSE:",
-        data
-      );
-
-
-      if (!response.ok) {
-
-        throw new Error(
-          data.message ||
-          "Failed to add product"
-        );
-
-      }
-
-
-      // ========================================
-      // GET UPDATED CART
-      // ========================================
-
-      const response2 = await fetch(
-        `${API_URL}/cart`,
-        {
-          headers: {
-            "user-id": storedUser.id
-          }
-        }
-      );
-
-
-      if (!response2.ok) {
-
-        throw new Error(
-          "Failed to get updated cart"
-        );
-
-      }
-
-
-      const updatedCart =
-        await response2.json();
-
-
-      console.log(
-        "UPDATED CART:",
-        updatedCart
-      );
-
-
-      setCart(updatedCart);
-
-
-    } catch (error) {
-
-      console.error(
-        "ADD TO CART ERROR:",
-        error
-      );
-
-      alert(error.message);
 
     }
 
-  };
+
+    // ========================================
+    // GET UPDATED CART
+    // ========================================
+
+    const response2 = await fetch(
+      `${API_URL}/cart`,
+      {
+        headers: {
+          "user-id": storedUser.id
+        }
+      }
+    );
+
+
+    if (!response2.ok) {
+
+      throw new Error(
+        "Failed to get updated cart"
+      );
+
+    }
+
+
+    const updatedCart =
+      await response2.json();
+
+
+    console.log(
+      "UPDATED CART:",
+      updatedCart
+    );
+
+
+    setCart(updatedCart);
+
+
+  } catch (error) {
+
+    console.error(
+      "ADD TO CART ERROR:",
+      error
+    );
+
+    alert(error.message);
+
+  } finally {
+
+    // Stop spinner
+    setCartLoading(null);
+
+  }
+
+};
 
 
   // ========================================
@@ -365,6 +418,16 @@ useEffect(() => {
       setSelectedCategory(category);
 
     };
+
+    const handleLoginNavigation = () => {
+  if (loginLoading) return;
+
+  setLoginLoading(true);
+
+  setTimeout(() => {
+    navigate("/login");
+  }, 1000);
+};
 
 
   return (
@@ -821,14 +884,19 @@ useEffect(() => {
 
 
           <button
-            className="login-btn"
-            onClick={() =>
-              navigate("/login")
-            }
-          >
-            Login
-          </button>
-
+    className="login-btn"
+    onClick={handleLoginNavigation}
+    disabled={loginLoading}
+>
+  {loginLoading ? (
+    <>
+      <span className="login-spinner"></span>
+      Loading...
+    </>
+    ) : (
+    "Login"
+      )}
+      </button>
         </div>
 
 
@@ -1016,34 +1084,41 @@ useEffect(() => {
                   {/* ADD TO CART */}
 
                   <button
-                    className="jj"
-                    onClick={() =>
-                      handleAddToCart(
-                        product
-                      )
-                    }
-                  >
-                    Add to Cart
-                  </button>
+  className="jj"
+  onClick={() =>
+    handleAddToCart(product)
+  }
+  disabled={cartLoading === product.id}
+>
+  {cartLoading === product.id ? (
+    <>
+      <span className="cart-spinner"></span>
+      Adding...
+    </>
+  ) : (
+    "Add to Cart"
+  )}
+</button>
 
 
                   {/* REVIEWS */}
 
                   <button
-                    className="ji"
-                    onClick={() =>
-                      navigate(
-                        `/reviews/${product.id}`,
-                        {
-                          state: {
-                            product
-                          }
-                        }
-                      )
-                    }
-                  >
-                    ⭐ Reviews
-                  </button>
+      className="ji"
+    onClick={() =>
+    handleReviewNavigation(product)
+      }
+      disabled={reviewLoading === product.id}
+      >
+      {reviewLoading === product.id ? (
+      <>
+        <span className="review-spinner"></span>
+          Loading...
+        </>
+      ) : (
+          "⭐ Reviews"
+      )}
+      </button>
 
                 </div>
 
@@ -1456,10 +1531,19 @@ useEffect(() => {
 
 
               <button
-                onClick={handleSubscribe}
-              >
-                Subscribe
-              </button>
+      onClick={handleSubscribe}
+      disabled={subscribeLoading}
+      className="subscribe-btn"
+      >
+      {subscribeLoading ? (
+        <>
+      <span className="subscribe-spinner"></span>
+      Subscribing...
+      </>
+    ) : (
+      "Subscribe"
+    )}
+  </button>
 
             </div>
 

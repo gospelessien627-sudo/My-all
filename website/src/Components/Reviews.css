@@ -6,6 +6,50 @@
 }
 
 
+/* ========================================
+   SUBMIT REVIEW BUTTON
+======================================== */
+
+.submit-review-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+}
+
+.submit-review-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* ========================================
+   REVIEW SUBMIT SPINNER
+======================================== */
+
+.review-submit-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+
+  border: 3px solid rgba(255, 255, 255, 0.4);
+  border-top: 3px solid white;
+
+  border-radius: 50%;
+
+  animation: reviewSubmitSpin 0.8s linear infinite;
+}
+
+@keyframes reviewSubmitSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
 .reviews-section {
   margin-top: 40px;
   padding: 30px;
@@ -218,5 +262,181 @@
 .rating-input  {
   /* margin-right: 10px; */
   margin-top: 20px;
+}
+}
+@media (width: 480px) {
+  *{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+ .reviews-section {
+  margin-top: 0px;
+  padding: 30px;
+  background: #fff;
+  border-radius: 12px;
+  /* height: 1350px; */
+}
+.review-form button {
+  width: fit-content;
+  padding: 22px 110px;
+  border: none;
+  font-size: 28px;
+  margin-top: 7px;
+  margin-left: 1px;
+  border-radius: 7px;
+  background: black;
+  color: white;
+  cursor: pointer;
+}
+.review-form input{
+   width: 100%;
+   /* height: 300px; */
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 7px;
+  outline: none;
+  margin: 0;
+}
+.rating-input  {
+  /* margin-right: 10px; */
+  margin-top: 20px;
+}
+.review-form textarea {
+  min-height: 240px;
+  margin-top: 30px;
+  resize: vertical;
+  font-size: 28px;
+}
+
+.rating-input {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.rating-input p {
+  margin-right: 10px;
+}
+.review-list h3{
+  font-size: 25px;
+  line-height: 1.2;
+  color: black;
+}
+.review-form input{
+  display: block;
+}
+.lod{
+  margin-top: 70px;
+ padding: 20px 80px; 
+ font-size: 29px;
+ margin-left: 10px;
+
+}
+.arr{
+    position: absolute;
+    right: 250px;
+}
+.reviews-section > h2 {
+  margin-bottom: 25px;
+  color: #777;
+  font-size: 30px;
+}
+.average-rating {
+  text-align: center;
+  padding: 20px;
+  background: #f7f7f7;
+  border-radius: 10px;
+}
+
+.average-rating h3 {
+  font-size: 40px;
+  margin: 0;
+}
+
+.stars {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin: 8px 0;
+}
+
+.star {
+  color: #ccc;
+  cursor: pointer;
+  margin-top: 10px;
+  font-size: 30px;
+}
+.average-rating p{
+  padding-top: 10px;
+  font-size: 28px;
+}
+.review-form form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.review-form input{
+  width: 100%;
+  padding: 30px;
+  /* height: 20px; */
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  outline: none;
+  font-size: 25px;
+}
+.review-form h3{
+  font-size: 30px;
+  padding-bottom: 10px;
+}
+.rating-input {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.rating-input p {
+  margin-right: 10px;
+  font-size: 32px;
+}
+.review-card {
+  padding: 20px;
+  border: 3px solid #eee;
+  border-radius: 10px;
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.review-header h3 {
+  margin: 0;
+}
+
+.review-comment {
+  margin: 15px 0;
+  line-height: 1.6;
+  font-size: 23px;
+}
+
+.review-card small {
+  color: #777;
+  font-size: 22px;
+  padding-bottom: 10px;
+}
+
+.delete-review {
+  display: block;
+  margin-top: 15px;
+  padding: 13px 20px;
+  border: none;
+  border-radius: 5px;
+  background: #eee;
+  color: red;
+  font-size: 27px;
+  cursor: pointer;
 }
 }
