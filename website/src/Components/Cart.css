@@ -4,6 +4,60 @@
     padding: 0;
     box-sizing: border-box;
 }
+
+/* ========================================
+   PAY NOW BUTTON
+======================================== */
+
+.weq {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  cursor: pointer;
+}
+
+
+/* ========================================
+   PAY NOW LOADING SPINNER
+======================================== */
+
+.pay-spinner {
+  width: 18px;
+  height: 18px;
+
+  border: 3px solid rgba(255, 255, 255, 0.4);
+
+  border-top: 3px solid white;
+
+  border-radius: 50%;
+
+  animation: paySpin 0.8s linear infinite;
+}
+
+
+@keyframes paySpin {
+
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+
+}
+
+
+/* ========================================
+   DISABLED PAY BUTTON
+======================================== */
+
+.weq:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
 .cart-page{
     background-color: rgba(255, 255, 255, 0.913);
 }
